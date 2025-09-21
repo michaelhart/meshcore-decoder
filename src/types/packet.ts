@@ -4,7 +4,6 @@ import { PayloadData } from './payloads';
 // main decoded packet interface
 export interface DecodedPacket {
   // packet metadata
-  hash: string;
   messageHash: string;
   
   // header information

@@ -17,7 +17,6 @@ export class MeshCorePacketDecoder {
     const bytes = this.hexToBytes(hexData);
     if (bytes.length < 2) {
       return {
-        hash: '',
         messageHash: '',
         routeType: RouteType.Flood,
         payloadType: PayloadType.RawCustom,
@@ -87,7 +86,6 @@ export class MeshCorePacketDecoder {
       const messageHash = this.calculateMessageHash(bytes, routeType, payloadType, payloadVersion);
 
       return {
-        hash: messageHash,
         messageHash,
         routeType,
         payloadType,
@@ -105,7 +103,6 @@ export class MeshCorePacketDecoder {
 
     } catch (error) {
       return {
-        hash: '',
         messageHash: '',
         routeType: RouteType.Flood,
         payloadType: PayloadType.RawCustom,
