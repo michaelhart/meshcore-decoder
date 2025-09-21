@@ -1,0 +1,39 @@
+{
+  "name": "meshcore-decoder",
+  "version": "0.1.1",
+  "description": "TypeScript library for decoding MeshCore packets",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
+  },
+  "keywords": [
+    "meshcore",
+    "packet",
+    "decoder"
+  ],
+  "author": "Michael Hart <michaelhart@michaelhart.me> (https://github.com/michaelhart)",
+  "license": "MIT",
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.5.2",
+    "@typescript-eslint/eslint-plugin": "^8.44.0",
+    "@typescript-eslint/parser": "^8.44.0",
+    "eslint": "^9.36.0",
+    "jest": "^30.1.3",
+    "prettier": "^3.6.2",
+    "ts-jest": "^29.4.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
