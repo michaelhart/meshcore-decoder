@@ -1,0 +1,18 @@
+# Node modules
+node_modules/
+
+# Build artifacts
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage reports
+coverage/
+
+# IDE and OS specific files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
