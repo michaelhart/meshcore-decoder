@@ -38,6 +38,56 @@ if (packet.payloadType === PayloadType.Advert && packet.payload.decoded) {
 }
 ```
 
+## Full Packet Structure Example
+
+Here's what a complete decoded packet looks like:
+
+```typescript
+import { MeshCorePacketDecoder } from 'meshcore-decoder';
+
+const hexData = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172';
+
+const packet = MeshCorePacketDecoder.decode(hexData);
+
+console.log(JSON.stringify(packet, null, 2));
+```
+
+**Output:**
+```json
+{
+  "messageHash": "F9C060FE",
+  "routeType": 1,
+  "payloadType": 4,
+  "payloadVersion": 0,
+  "pathLength": 0,
+  "path": null,
+  "payload": {
+    "raw": "7E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172",
+    "decoded": {
+      "type": 4,
+      "version": 0,
+      "isValid": true,
+      "publicKey": "7E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C9400",
+      "timestamp": 1758455660,
+      "signature": "2E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E609",
+      "appData": {
+        "flags": 146,
+        "deviceRole": 2,
+        "hasLocation": true,
+        "hasName": true,
+        "location": {
+          "latitude": 47.543968,
+          "longitude": -122.108616
+        },
+        "name": "WW7STR/PugetMesh Cougar"
+      }
+    }
+  },
+  "totalBytes": 134,
+  "isValid": true
+}
+```
+
 ## Decryption Support
 
 Simply provide your channel secret keys and the library handles everything else:
