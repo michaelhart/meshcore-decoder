@@ -165,7 +165,7 @@ The library automatically:
 
 ## Packet Structure Analysis
 
-Example running from the terminal for a detailed packet analysis and debugging, use `analyzeStructure()` to get byte-level breakdowns:
+For detailed packet analysis and debugging, use `analyzeStructure()` to get byte-level breakdowns:
 
 ```typescript
 import { MeshCoreDecoder, PacketStructure } from 'meshcore-decoder';
@@ -222,6 +222,27 @@ The `analyzeStructure()` method provides:
 - **Byte-accurate segments** with start/end positions
 - **Payload field parsing** for all supported packet types
 - **Human-readable descriptions** for each field
+
+### Command Line Interface
+
+For quick analysis from the terminal, install globally and use the CLI:
+
+```bash
+# Install globally
+npm install -g meshcore-decoder
+
+# Analyze a packet
+meshcore-decoder 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+
+# With decryption (provide channel secrets)
+meshcore-decoder 150011C3C1354D619BAE9590E4D177DB7EEAF982F5BDCF78005D75157D9535FA90178F785D --key 8b3387e9c5cdea6ac9e5edbaa115cd72
+
+# Show detailed structure analysis
+meshcore-decoder --structure 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+
+# JSON output
+meshcore-decoder --json 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+```
 
 ## Development
 
