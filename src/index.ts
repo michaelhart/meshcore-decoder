@@ -3,9 +3,10 @@
 // MIT License
 
 export { MeshCorePacketDecoder } from './decoder/packet-decoder';
+export { MeshCorePacketDecoder as MeshCoreDecoder } from './decoder/packet-decoder';
 
 // Type exports
-export type { DecodedPacket, PacketStructure, PacketSegment, PayloadSegment } from './types/packet';
+export type { DecodedPacket, PacketStructure, PacketSegment, PayloadSegment, HeaderBreakdown } from './types/packet';
 export type { 
   BasePayload, 
   AdvertPayload, 
@@ -37,3 +38,18 @@ export { ChannelCrypto } from './crypto/channel-crypto';
 
 // Utility exports
 export { hexToBytes, bytesToHex, byteToHex, numberToHex } from './utils/hex';
+export { 
+  getRouteTypeName, 
+  getPayloadTypeName, 
+  getPayloadVersionName, 
+  getDeviceRoleName, 
+  getRequestTypeName 
+} from './utils/enum-names';
+
+import * as EnumUtils from './utils/enum-names';
+import * as HexUtils from './utils/hex';
+
+export const Utils = {
+  ...EnumUtils,
+  ...HexUtils
+};

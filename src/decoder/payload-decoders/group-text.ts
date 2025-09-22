@@ -2,16 +2,17 @@
 // MIT License
 
 import { GroupTextPayload } from '../../types/payloads';
+import { PayloadSegment } from '../../types/packet';
 import { PayloadType, PayloadVersion } from '../../types/enums';
 import { DecryptionOptions } from '../../types/crypto';
 import { ChannelCrypto } from '../../crypto/channel-crypto';
 import { byteToHex, bytesToHex } from '../../utils/hex';
 
 export class GroupTextPayloadDecoder {
-  static decode(payload: Uint8Array, options?: DecryptionOptions): GroupTextPayload | null {
+  static decode(payload: Uint8Array, options?: DecryptionOptions & { includeSegments?: boolean; segmentOffset?: number }): GroupTextPayload & { segments?: PayloadSegment[] } | null {
     try {
       if (payload.length < 3) {
-        return {
+        const result: GroupTextPayload & { segments?: PayloadSegment[] } = {
           type: PayloadType.GroupText,
           version: PayloadVersion.Version1,
           isValid: false,
@@ -21,18 +22,63 @@ export class GroupTextPayloadDecoder {
           ciphertext: '',
           ciphertextLength: 0
         };
+        
+        if (options?.includeSegments) {
+          result.segments = [{
+            name: 'Invalid GroupText Data',
+            description: 'GroupText payload too short (minimum 3 bytes required)',
+            startByte: options.segmentOffset || 0,
+            endByte: (options.segmentOffset || 0) + payload.length - 1,
+            value: bytesToHex(payload)
+          }];
+        }
+        
+        return result;
       }
 
+      const segments: PayloadSegment[] = [];
+      const segmentOffset = options?.segmentOffset || 0;
+      let offset = 0;
+
       // channel hash (1 byte) - first byte of SHA256 of channel's shared key
-      const channelHash = byteToHex(payload[0]);
+      const channelHash = byteToHex(payload[offset]);
+      if (options?.includeSegments) {
+        segments.push({
+          name: 'Channel Hash',
+          description: 'First byte of SHA256 of channel\'s shared key',
+          startByte: segmentOffset + offset,
+          endByte: segmentOffset + offset,
+          value: channelHash
+        });
+      }
+      offset += 1;
       
       // MAC (2 bytes) - message authentication code
-      const cipherMac = bytesToHex(payload.subarray(1, 3));
+      const cipherMac = bytesToHex(payload.subarray(offset, offset + 2));
+      if (options?.includeSegments) {
+        segments.push({
+          name: 'Cipher MAC',
+          description: 'MAC for encrypted data',
+          startByte: segmentOffset + offset,
+          endByte: segmentOffset + offset + 1,
+          value: cipherMac
+        });
+      }
+      offset += 2;
       
       // ciphertext (remaining bytes) - encrypted message
-      const ciphertext = bytesToHex(payload.subarray(3));
+      const ciphertext = bytesToHex(payload.subarray(offset));
+      if (options?.includeSegments && payload.length > offset) {
+        segments.push({
+          name: 'Ciphertext',
+          description: 'Encrypted message content (timestamp + flags + message)',
+          startByte: segmentOffset + offset,
+          endByte: segmentOffset + payload.length - 1,
+          value: ciphertext
+        });
+      }
 
-      const groupText: GroupTextPayload = {
+      const groupText: GroupTextPayload & { segments?: PayloadSegment[] } = {
         type: PayloadType.GroupText,
         version: PayloadVersion.Version1,
         isValid: true,
@@ -64,6 +110,10 @@ export class GroupTextPayloadDecoder {
             break; // stop trying keys once we find one that works
           }
         }
+      }
+
+      if (options?.includeSegments) {
+        groupText.segments = segments;
       }
 
       return groupText;
