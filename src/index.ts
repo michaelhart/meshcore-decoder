@@ -15,6 +15,7 @@ export type {
   TextMessagePayload, 
   AnonRequestPayload, 
   AckPayload, 
+  PathPayload,
   ResponsePayload,
   PayloadData 
 } from './types/payloads';
@@ -33,3 +34,6 @@ export {
 // Crypto exports
 export { MeshCoreKeyStore } from './crypto/key-manager';
 export { ChannelCrypto } from './crypto/channel-crypto';
+
+// Utility exports
+export { hexToBytes, bytesToHex, byteToHex, numberToHex } from './utils/hex';

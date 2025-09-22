@@ -3,6 +3,7 @@
 
 import { AdvertPayload } from '../../types/payloads';
 import { PayloadType, PayloadVersion, DeviceRole, AdvertFlags } from '../../types/enums';
+import { bytesToHex } from '../../utils/hex';
 
 export class AdvertPayloadDecoder {
   static decode(payload: Uint8Array): AdvertPayload | null {
@@ -27,17 +28,11 @@ export class AdvertPayloadDecoder {
       }
 
       // parse advertisement structure from payloads.md
-      const publicKey = Array.from(payload.subarray(0, 32))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase();
+      const publicKey = bytesToHex(payload.subarray(0, 32));
       
       const timestamp = this.readUint32LE(payload, 32);
       
-      const signature = Array.from(payload.subarray(36, 100))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-        .toUpperCase();
+      const signature = bytesToHex(payload.subarray(36, 100));
       
       const flags = payload[100];
 

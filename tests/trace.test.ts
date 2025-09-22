@@ -18,10 +18,14 @@ describe('Trace Packets', () => {
     
     const trace = packet.payload.decoded as TracePayload;
     expect(trace.isValid).toBe(true);
-    expect(trace.traceTag).toBe('BD894DA2');
-    expect(trace.authCode).toBe(0);
-    expect(trace.flags).toBe(0);
-    expect(trace.pathHashes).toEqual(['fb']);
+    
+    // Validate trace payload fields with hex breakdown
+    expect(trace.traceTag).toBe('BD894DA2'); // Bytes 0-3: 0xA24D89BD
+    expect(trace.authCode).toBe(0); // Bytes 4-7: 0x00000000
+    expect(trace.flags).toBe(0); // Byte 8: 0x00
+    expect(trace.pathHashes).toEqual(['FB']); // Byte 9: 0xFB (single path hash from payload)
+    
+    // Validate SNR calculation from path data (0x30 = 48, signed = 48, /4 = 12dB)
     expect(trace.snrValues).toEqual([12]);
     
     expect(packet.pathLength).toBe(1);

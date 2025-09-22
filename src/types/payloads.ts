@@ -81,7 +81,14 @@ export interface AnonRequestPayload extends BasePayload {
 }
 
 export interface AckPayload extends BasePayload {
-  checksum: number;
+  checksum: string;
+}
+
+export interface PathPayload extends BasePayload {
+  pathLength: number;
+  pathHashes: string[];
+  extraType: number;
+  extraData: string;
 }
 
 export interface ResponsePayload extends BasePayload {
@@ -105,4 +112,5 @@ export type PayloadData =
   | TextMessagePayload 
   | AnonRequestPayload 
   | AckPayload 
+  | PathPayload
   | ResponsePayload;

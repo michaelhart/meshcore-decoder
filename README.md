@@ -6,7 +6,7 @@ A TypeScript library for decoding MeshCore mesh networking packets with full cry
 
 - **Packet Decoding**: Decode MeshCore packets
 - **Built-in Decryption**: Decrypt GroupText, TextMessage, and other encrypted payloads
-- **Developer Friendly**: TypeScript-first with full type safety and porability of JavaScript
+- **Developer Friendly**: TypeScript-first with full type safety and portability of JavaScript
 
 ## Installation
 
@@ -87,6 +87,30 @@ console.log(JSON.stringify(packet, null, 2));
   "isValid": true
 }
 ```
+
+## Packet Support
+
+| Value | Name | Description | Decoding | Decryption |
+|-------|------|-------------|----------|------------|
+| `0x00` | Request | Request (destination/source hashes + MAC) | ✅ | 🚧 |
+| `0x01` | Response | Response to REQ or ANON_REQ | ✅ | 🚧 |
+| `0x02` | Plain text message | Plain text message | ✅ | 🚧 |
+| `0x03` | Acknowledgment | Acknowledgment | ✅ | N/A |
+| `0x04` | Node advertisement | Node advertisement | ✅ | N/A |
+| `0x05` | Group text message | Group text message | ✅ | ✅ |
+| `0x06` | Group datagram | Group datagram | 🚧 | 🚧 |
+| `0x07` | Anonymous request | Anonymous request | ✅ | 🚧 |
+| `0x08` | Returned path | Returned path | ✅ | N/A |
+| `0x09` | Trace | Trace a path, collecting SNI for each hop | ✅ | N/A |
+| `0x0A` | Multi-part packet | Packet is part of a sequence of packets | 🚧 | 🚧 |
+| `0x0F` | Custom packet | Custom packet (raw bytes, custom encryption) | 🚧 | 🚧 |
+
+**Legend:**
+- ✅ Fully implemented
+- 🚧 Planned/In development
+- `-` Not applicable
+
+For some packet types not yet supported here, they may not exist in MeshCore yet or I have yet to observe these packet types on the mesh.
 
 ## Decryption Support
 
