@@ -27,7 +27,7 @@ export interface AdvertPayload extends BasePayload {
 }
 
 export interface TracePayload extends BasePayload {
-  traceTag: number;
+  traceTag: string;
   authCode: number;
   flags: number;
   pathHashes: string[];

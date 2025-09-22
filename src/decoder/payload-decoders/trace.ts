@@ -13,7 +13,7 @@ export class TracePayloadDecoder {
           version: PayloadVersion.Version1,
           isValid: false,
           errors: ['Trace payload too short (need at least tag(4) + auth(4) + flags(1))'],
-          traceTag: 0,
+          traceTag: '00000000',
           authCode: 0,
           flags: 0,
           pathHashes: []
@@ -23,7 +23,8 @@ export class TracePayloadDecoder {
       let offset = 0;
 
       // Trace Tag (4 bytes) - unique identifier
-      const traceTag = this.readUint32LE(payload, offset);
+      const traceTagRaw = this.readUint32LE(payload, offset);
+      const traceTag = (traceTagRaw >>> 0).toString(16).padStart(8, '0').toUpperCase();
       offset += 4;
 
       // Auth Code (4 bytes) - authentication/verification code  
@@ -68,7 +69,7 @@ export class TracePayloadDecoder {
         version: PayloadVersion.Version1,
         isValid: false,
         errors: [error instanceof Error ? error.message : 'Failed to decode trace payload'],
-        traceTag: 0,
+        traceTag: '00000000',
         authCode: 0,
         flags: 0,
         pathHashes: []
