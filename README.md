@@ -188,7 +188,6 @@ structure.payload.segments.forEach((seg, i) => {
   console.log(`   Description: ${seg.description}`);
 });
 ```
-```
 
 **Output:**
 ```
