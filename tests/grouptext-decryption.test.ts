@@ -24,9 +24,12 @@ describe('GroupText Decryption', () => {
     
     const groupText = packet.payload.decoded as GroupTextPayload;
     expect(groupText.isValid).toBe(true);
-    expect(groupText.channelHash).toBe('11');
-    expect(groupText.cipherMac).toBe('c3c1');
-    expect(groupText.ciphertextLength).toBe(32);
+    
+    // Validate GroupText payload structure with hex breakdown
+    expect(groupText.channelHash).toBe('11'); // Byte 0: first byte of SHA256(channel_secret)
+    expect(groupText.cipherMac).toBe('C3C1'); // Bytes 1-2: HMAC-SHA256 MAC (first 2 bytes)
+    expect(groupText.ciphertext).toBe('354D619BAE9590E4D177DB7EEAF982F5BDCF78005D75157D9535FA90178F785D'); // Bytes 3+: AES-128 ECB encrypted message
+    expect(groupText.ciphertextLength).toBe(32); // 64 hex chars = 32 bytes
     
     // Decryption should succeed
     expect(groupText.decrypted).toBeDefined();
