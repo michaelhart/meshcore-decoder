@@ -3,6 +3,7 @@
 
 import { TracePayload } from '../../types/payloads';
 import { PayloadType, PayloadVersion } from '../../types/enums';
+import { numberToHex, byteToHex } from '../../utils/hex';
 
 export class TracePayloadDecoder {
   static decode(payload: Uint8Array, pathData?: string[] | null): TracePayload | null {
@@ -24,7 +25,7 @@ export class TracePayloadDecoder {
 
       // Trace Tag (4 bytes) - unique identifier
       const traceTagRaw = this.readUint32LE(payload, offset);
-      const traceTag = (traceTagRaw >>> 0).toString(16).padStart(8, '0').toUpperCase();
+      const traceTag = numberToHex(traceTagRaw, 8);
       offset += 4;
 
       // Auth Code (4 bytes) - authentication/verification code  
@@ -38,7 +39,7 @@ export class TracePayloadDecoder {
       // remaining bytes are path hashes (node hashes in the trace path)
       const pathHashes: string[] = [];
       while (offset < payload.length) {
-        pathHashes.push(payload[offset].toString(16).padStart(2, '0'));
+        pathHashes.push(byteToHex(payload[offset]));
         offset++;
       }
 

@@ -3,18 +3,25 @@
 
 import { DecodedPacket } from '../types/packet';
 import { RouteType, PayloadType, PayloadVersion } from '../types/enums';
+import { hexToBytes, byteToHex, bytesToHex, numberToHex } from '../utils/hex';
 import { DecryptionOptions, ValidationResult, CryptoKeyStore } from '../types/crypto';
 import { MeshCoreKeyStore } from '../crypto/key-manager';
 import { AdvertPayloadDecoder } from './payload-decoders/advert';
 import { TracePayloadDecoder } from './payload-decoders/trace';
 import { GroupTextPayloadDecoder } from './payload-decoders/group-text';
+import { RequestPayloadDecoder } from './payload-decoders/request';
+import { ResponsePayloadDecoder } from './payload-decoders/response';
+import { AnonRequestPayloadDecoder } from './payload-decoders/anon-request';
+import { AckPayloadDecoder } from './payload-decoders/ack';
+import { PathPayloadDecoder } from './payload-decoders/path';
+import { TextMessagePayloadDecoder } from './payload-decoders/text-message';
 
 export class MeshCorePacketDecoder {
   /**
    * Decode a raw packet from hex string
    */
   static decode(hexData: string, options?: DecryptionOptions): DecodedPacket {
-    const bytes = this.hexToBytes(hexData);
+    const bytes = hexToBytes(hexData);
     if (bytes.length < 2) {
       return {
         messageHash: '',
@@ -65,21 +72,33 @@ export class MeshCorePacketDecoder {
 
       // convert path data to hex strings
       const pathBytes = bytes.subarray(offset, offset + pathLength);
-      const path = pathLength > 0 ? Array.from(pathBytes).map(b => b.toString(16).padStart(2, '0')) : null;
+      const path: string[] | null = pathLength > 0 ? Array.from(pathBytes).map(byteToHex) : null;
       offset += pathLength;
 
       // extract payload
       const payloadBytes = bytes.subarray(offset);
-      const payloadHex = Array.from(payloadBytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+      const payloadHex = bytesToHex(payloadBytes);
 
       // decode payload based on type
       let decodedPayload = null;
       if (payloadType === PayloadType.Advert) {
         decodedPayload = AdvertPayloadDecoder.decode(payloadBytes);
       } else if (payloadType === PayloadType.Trace) {
-        decodedPayload = TracePayloadDecoder.decode(payloadBytes, path);
+        decodedPayload = TracePayloadDecoder.decode(payloadBytes, path as string[] | null);
       } else if (payloadType === PayloadType.GroupText) {
         decodedPayload = GroupTextPayloadDecoder.decode(payloadBytes, options);
+      } else if (payloadType === PayloadType.Request) {
+        decodedPayload = RequestPayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.Response) {
+        decodedPayload = ResponsePayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.AnonRequest) {
+        decodedPayload = AnonRequestPayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.Ack) {
+        decodedPayload = AckPayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.Path) {
+        decodedPayload = PathPayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.TextMessage) {
+        decodedPayload = TextMessagePayloadDecoder.decode(payloadBytes);
       }
 
       // calculate message hash
@@ -121,7 +140,7 @@ export class MeshCorePacketDecoder {
    * Validate packet format without full decoding
    */
   static validate(hexData: string): ValidationResult {
-    const bytes = this.hexToBytes(hexData);
+    const bytes = hexToBytes(hexData);
     const errors: string[] = [];
 
     if (bytes.length < 2) {
@@ -189,7 +208,7 @@ export class MeshCorePacketDecoder {
       // extract trace tag
       if (bytes.length >= offset + 4) {
         const traceTag = (bytes[offset]) | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
-        return (traceTag >>> 0).toString(16).padStart(8, '0').toUpperCase();
+        return numberToHex(traceTag, 8);
       }
     }
 
@@ -217,7 +236,7 @@ export class MeshCorePacketDecoder {
       hash = ((hash << 5) - hash + hashInput[i]) & 0xffffffff;
     }
     
-    return (hash >>> 0).toString(16).padStart(8, '0').toUpperCase();
+    return numberToHex(hash, 8);
   }
 
   /**
@@ -230,21 +249,4 @@ export class MeshCorePacketDecoder {
     return new MeshCoreKeyStore(initialKeys);
   }
 
-  private static hexToBytes(hex: string): Uint8Array {
-    // clean hex string (remove spaces and ensure even length)
-    const cleanHex = hex.replace(/\s+/g, '');
-    if (cleanHex.length % 2 !== 0) {
-      throw new Error('Invalid hex string: odd length');
-    }
-    
-    const bytes = new Uint8Array(cleanHex.length / 2);
-    for (let i = 0; i < cleanHex.length; i += 2) {
-      const byte = parseInt(cleanHex.substr(i, 2), 16);
-      if (isNaN(byte)) {
-        throw new Error(`Invalid hex string: invalid characters at position ${i}`);
-      }
-      bytes[i / 2] = byte;
-    }
-    return bytes;
-  }
 }

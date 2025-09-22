@@ -5,6 +5,7 @@ import { GroupTextPayload } from '../../types/payloads';
 import { PayloadType, PayloadVersion } from '../../types/enums';
 import { DecryptionOptions } from '../../types/crypto';
 import { ChannelCrypto } from '../../crypto/channel-crypto';
+import { byteToHex, bytesToHex } from '../../utils/hex';
 
 export class GroupTextPayloadDecoder {
   static decode(payload: Uint8Array, options?: DecryptionOptions): GroupTextPayload | null {
@@ -23,17 +24,13 @@ export class GroupTextPayloadDecoder {
       }
 
       // channel hash (1 byte) - first byte of SHA256 of channel's shared key
-      const channelHash = payload[0].toString(16).padStart(2, '0');
+      const channelHash = byteToHex(payload[0]);
       
       // MAC (2 bytes) - message authentication code
-      const cipherMac = Array.from(payload.subarray(1, 3))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      const cipherMac = bytesToHex(payload.subarray(1, 3));
       
       // ciphertext (remaining bytes) - encrypted message
-      const ciphertext = Array.from(payload.subarray(3))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
+      const ciphertext = bytesToHex(payload.subarray(3));
 
       const groupText: GroupTextPayload = {
         type: PayloadType.GroupText,

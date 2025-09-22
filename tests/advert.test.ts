@@ -19,10 +19,18 @@ describe('MeshCorePacketDecoder', () => {
       
       const advert = packet.payload.decoded as AdvertPayload;
       expect(advert.isValid).toBe(true);
+      
+      // Validate core advertisement fields
+      expect(advert.publicKey).toBe('7E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C9400');
+      expect(advert.timestamp).toBe(1758455660); // 0x68CE7CF6
+      expect(advert.signature).toBe('2E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E609');
+      
+      // Validate app data structure
+      expect(advert.appData.flags).toBe(146); // 0x92
       expect(advert.appData.deviceRole).toBe(DeviceRole.Repeater);
-      expect(advert.appData.name).toBe('WW7STR/PugetMesh Cougar');
       expect(advert.appData.hasName).toBe(true);
       expect(advert.appData.hasLocation).toBe(true);
+      expect(advert.appData.name).toBe('WW7STR/PugetMesh Cougar');
       expect(advert.appData.location?.latitude).toBeCloseTo(47.543968, 6);
       expect(advert.appData.location?.longitude).toBeCloseTo(-122.108616, 6);
       
