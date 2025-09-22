@@ -2,15 +2,16 @@
 // MIT License
 
 import { AdvertPayload } from '../../types/payloads';
+import { PayloadSegment } from '../../types/packet';
 import { PayloadType, PayloadVersion, DeviceRole, AdvertFlags } from '../../types/enums';
 import { bytesToHex } from '../../utils/hex';
 
 export class AdvertPayloadDecoder {
-  static decode(payload: Uint8Array): AdvertPayload | null {
+  static decode(payload: Uint8Array, options?: { includeSegments?: boolean; segmentOffset?: number }): AdvertPayload & { segments?: PayloadSegment[] } | null {
     try {
       // start of appdata section: public_key(32) + timestamp(4) + signature(64) + flags(1) = 101 bytes
       if (payload.length < 101) {
-        return {
+        const result: AdvertPayload & { segments?: PayloadSegment[] } = {
           type: PayloadType.Advert,
           version: PayloadVersion.Version1,
           isValid: false,
@@ -25,18 +26,77 @@ export class AdvertPayloadDecoder {
             hasName: false
           }
         };
+        
+        if (options?.includeSegments) {
+          result.segments = [{
+            name: 'Invalid Advert Data',
+            description: 'Advert payload too short (minimum 101 bytes required)',
+            startByte: options.segmentOffset || 0,
+            endByte: (options.segmentOffset || 0) + payload.length - 1,
+            value: bytesToHex(payload)
+          }];
+        }
+        
+        return result;
       }
 
-      // parse advertisement structure from payloads.md
-      const publicKey = bytesToHex(payload.subarray(0, 32));
-      
-      const timestamp = this.readUint32LE(payload, 32);
-      
-      const signature = bytesToHex(payload.subarray(36, 100));
-      
-      const flags = payload[100];
+      const segments: PayloadSegment[] = [];
+      const segmentOffset = options?.segmentOffset || 0;
+      let currentOffset = 0;
 
-      const advert: AdvertPayload = {
+      // parse advertisement structure from payloads.md
+      const publicKey = bytesToHex(payload.subarray(currentOffset, currentOffset + 32));
+      if (options?.includeSegments) {
+        segments.push({
+          name: 'Public Key',
+          description: 'Ed25519 public key',
+          startByte: segmentOffset + currentOffset,
+          endByte: segmentOffset + currentOffset + 31,
+          value: publicKey
+        });
+      }
+      currentOffset += 32;
+      
+      const timestamp = this.readUint32LE(payload, currentOffset);
+      if (options?.includeSegments) {
+        const timestampDate = new Date(timestamp * 1000);
+        segments.push({
+          name: 'Timestamp',
+          description: `${timestamp} (${timestampDate.toISOString().slice(0, 19)}Z)`,
+          startByte: segmentOffset + currentOffset,
+          endByte: segmentOffset + currentOffset + 3,
+          value: bytesToHex(payload.subarray(currentOffset, currentOffset + 4))
+        });
+      }
+      currentOffset += 4;
+      
+      const signature = bytesToHex(payload.subarray(currentOffset, currentOffset + 64));
+      if (options?.includeSegments) {
+        segments.push({
+          name: 'Signature',
+          description: 'Ed25519 signature',
+          startByte: segmentOffset + currentOffset,
+          endByte: segmentOffset + currentOffset + 63,
+          value: signature
+        });
+      }
+      currentOffset += 64;
+      
+      const flags = payload[currentOffset];
+      if (options?.includeSegments) {
+        const binaryStr = flags.toString(2).padStart(8, '0');
+        const flagDesc = ` | Bit 4 (Location): ${!!(flags & AdvertFlags.HasLocation) ? 'Yes' : 'No'} | Bit 7 (Name): ${!!(flags & AdvertFlags.HasName) ? 'Yes' : 'No'}`;
+        segments.push({
+          name: 'App Flags',
+          description: `Binary: ${binaryStr}${flagDesc}`,
+          startByte: segmentOffset + currentOffset,
+          endByte: segmentOffset + currentOffset,
+          value: flags.toString(16).padStart(2, '0').toUpperCase()
+        });
+      }
+      currentOffset += 1;
+
+      const advert: AdvertPayload & { segments?: PayloadSegment[] } = {
         type: PayloadType.Advert,
         version: PayloadVersion.Version1,
         isValid: true,
@@ -51,7 +111,7 @@ export class AdvertPayloadDecoder {
         }
       };
 
-      let offset = 101;
+      let offset = currentOffset;
 
       // location data (if HasLocation flag is set)
       if (flags & AdvertFlags.HasLocation && payload.length >= offset + 8) {
@@ -61,6 +121,25 @@ export class AdvertPayloadDecoder {
           latitude: Math.round(lat * 1000000) / 1000000, // Keep precision
           longitude: Math.round(lon * 1000000) / 1000000
         };
+        
+        if (options?.includeSegments) {
+          segments.push({
+            name: 'Latitude',
+            description: `${lat}° (${lat})`,
+            startByte: segmentOffset + offset,
+            endByte: segmentOffset + offset + 3,
+            value: bytesToHex(payload.subarray(offset, offset + 4))
+          });
+
+          segments.push({
+            name: 'Longitude',
+            description: `${lon}° (${lon})`,
+            startByte: segmentOffset + offset + 4,
+            endByte: segmentOffset + offset + 7,
+            value: bytesToHex(payload.subarray(offset + 4, offset + 8))
+          });
+        }
+        
         offset += 8;
       }
 
@@ -73,6 +152,20 @@ export class AdvertPayloadDecoder {
         const nameBytes = payload.subarray(offset);
         const rawName = new TextDecoder('utf-8').decode(nameBytes).replace(/\0.*$/, '');
         advert.appData.name = this.sanitizeControlCharacters(rawName) || rawName;
+        
+        if (options?.includeSegments) {
+          segments.push({
+            name: 'Node Name',
+            description: `Node name: "${advert.appData.name}"`,
+            startByte: segmentOffset + offset,
+            endByte: segmentOffset + payload.length - 1,
+            value: bytesToHex(nameBytes)
+          });
+        }
+      }
+
+      if (options?.includeSegments) {
+        advert.segments = segments;
       }
 
       return advert;
