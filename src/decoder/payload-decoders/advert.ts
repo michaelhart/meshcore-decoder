@@ -5,6 +5,7 @@ import { AdvertPayload } from '../../types/payloads';
 import { PayloadSegment } from '../../types/packet';
 import { PayloadType, PayloadVersion, DeviceRole, AdvertFlags } from '../../types/enums';
 import { bytesToHex } from '../../utils/hex';
+import { getDeviceRoleName } from '../../utils/enum-names';
 
 export class AdvertPayloadDecoder {
   static decode(payload: Uint8Array, options?: { includeSegments?: boolean; segmentOffset?: number }): AdvertPayload & { segments?: PayloadSegment[] } | null {
@@ -85,7 +86,9 @@ export class AdvertPayloadDecoder {
       const flags = payload[currentOffset];
       if (options?.includeSegments) {
         const binaryStr = flags.toString(2).padStart(8, '0');
-        const flagDesc = ` | Bit 4 (Location): ${!!(flags & AdvertFlags.HasLocation) ? 'Yes' : 'No'} | Bit 7 (Name): ${!!(flags & AdvertFlags.HasName) ? 'Yes' : 'No'}`;
+        const deviceRole = this.parseDeviceRole(flags);
+        const roleName = getDeviceRoleName(deviceRole);
+        const flagDesc = ` | Bits 0-3 (Role): ${roleName} | Bit 4 (Location): ${!!(flags & AdvertFlags.HasLocation) ? 'Yes' : 'No'} | Bit 7 (Name): ${!!(flags & AdvertFlags.HasName) ? 'Yes' : 'No'}`;
         segments.push({
           name: 'App Flags',
           description: `Binary: ${binaryStr}${flagDesc}`,
