@@ -18,7 +18,7 @@ describe('Trace Packets', () => {
     
     const trace = packet.payload.decoded as TracePayload;
     expect(trace.isValid).toBe(true);
-    expect(trace.traceTag).toBe(-1115075166);
+    expect(trace.traceTag).toBe('BD894DA2');
     expect(trace.authCode).toBe(0);
     expect(trace.flags).toBe(0);
     expect(trace.pathHashes).toEqual(['fb']);
