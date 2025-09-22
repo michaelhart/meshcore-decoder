@@ -3,6 +3,7 @@
 
 import { HmacSHA256, AES, mode, pad, enc, lib, SHA256 } from 'crypto-js';
 import { DecryptionResult } from '../types/crypto';
+import { hexToBytes, bytesToHex } from '../utils/hex';
 
 export class ChannelCrypto {
   /**
@@ -17,16 +18,16 @@ export class ChannelCrypto {
   ): DecryptionResult {
     try {
       // convert hex strings to byte arrays
-      const channelKey16 = this.hexToBytes(channelKey);
-      const macBytes = this.hexToBytes(cipherMac);
+      const channelKey16 = hexToBytes(channelKey);
+      const macBytes = hexToBytes(cipherMac);
       
       // MeshCore uses 32-byte channel secret: 16-byte key + 16 zero bytes
       const channelSecret = new Uint8Array(32);
       channelSecret.set(channelKey16, 0);
       
       // Step 1: Verify HMAC-SHA256 using full 32-byte channel secret
-      const calculatedMac = HmacSHA256(enc.Hex.parse(ciphertext), enc.Hex.parse(this.bytesToHex(channelSecret)));
-      const calculatedMacBytes = this.hexToBytes(calculatedMac.toString(enc.Hex));
+      const calculatedMac = HmacSHA256(enc.Hex.parse(ciphertext), enc.Hex.parse(bytesToHex(channelSecret)));
+      const calculatedMacBytes = hexToBytes(calculatedMac.toString(enc.Hex));
       const calculatedMacFirst2 = calculatedMacBytes.slice(0, 2);
       
       if (calculatedMacFirst2[0] !== macBytes[0] || calculatedMacFirst2[1] !== macBytes[1]) {
@@ -43,7 +44,7 @@ export class ChannelCrypto {
         { mode: mode.ECB, padding: pad.NoPadding }
       );
       
-      const decryptedBytes = this.hexToBytes(decrypted.toString(enc.Hex));
+      const decryptedBytes = hexToBytes(decrypted.toString(enc.Hex));
       
       if (!decryptedBytes || decryptedBytes.length < 5) {
         return { success: false, error: 'Decrypted content too short' };
@@ -99,17 +100,7 @@ export class ChannelCrypto {
     }
   }
 
-  private static hexToBytes(hex: string): Uint8Array {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return bytes;
-  }
 
-  private static bytesToHex(bytes: Uint8Array): string {
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
 
   /**
    * Calculate MeshCore channel hash from secret key
@@ -117,7 +108,7 @@ export class ChannelCrypto {
    */
   static calculateChannelHash(secretKeyHex: string): string {
     const hash = SHA256(enc.Hex.parse(secretKeyHex));
-    const hashBytes = this.hexToBytes(hash.toString(enc.Hex));
+    const hashBytes = hexToBytes(hash.toString(enc.Hex));
     return hashBytes[0].toString(16).padStart(2, '0');
   }
 }
