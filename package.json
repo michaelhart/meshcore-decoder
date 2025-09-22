@@ -4,6 +4,9 @@
   "description": "TypeScript library for decoding MeshCore packets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "meshcore-decoder": "./dist/cli.js"
+  },
   "scripts": {
     "dev": "ts-node src/index.ts",
     "test": "jest",
@@ -21,7 +24,9 @@
   "author": "Michael Hart <michaelhart@michaelhart.me> (https://github.com/michaelhart)",
   "license": "MIT",
   "dependencies": {
-    "crypto-js": "^4.2.0"
+    "crypto-js": "^4.2.0",
+    "commander": "^12.0.0",
+    "chalk": "^4.1.2"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
