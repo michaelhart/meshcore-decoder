@@ -258,7 +258,15 @@ export class MeshCorePacketDecoder {
           delete result.segments;
         }
       } else if (payloadType === PayloadType.Request) {
-        decodedPayload = RequestPayloadDecoder.decode(payloadBytes);
+        const result = RequestPayloadDecoder.decode(payloadBytes, {
+          includeSegments: includeStructure,
+          segmentOffset: 0  // Payload segments are relative to payload start
+        });
+        decodedPayload = result;
+        if (result?.segments) {
+          payloadSegments.push(...result.segments);
+          delete result.segments;
+        }
       } else if (payloadType === PayloadType.Response) {
         const result = ResponsePayloadDecoder.decode(payloadBytes, {
           includeSegments: includeStructure,
