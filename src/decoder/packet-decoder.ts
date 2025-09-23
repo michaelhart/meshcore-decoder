@@ -278,7 +278,15 @@ export class MeshCorePacketDecoder {
           delete result.segments;
         }
       } else if (payloadType === PayloadType.AnonRequest) {
-        decodedPayload = AnonRequestPayloadDecoder.decode(payloadBytes);
+        const result = AnonRequestPayloadDecoder.decode(payloadBytes, {
+          includeSegments: includeStructure,
+          segmentOffset: 0
+        });
+        decodedPayload = result;
+        if (result?.segments) {
+          payloadSegments.push(...result.segments);
+          delete result.segments;
+        }
       } else if (payloadType === PayloadType.Ack) {
         const result = AckPayloadDecoder.decode(payloadBytes, {
           includeSegments: includeStructure,

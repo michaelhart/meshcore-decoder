@@ -48,9 +48,18 @@ export interface GroupTextPayload extends BasePayload {
 }
 
 export interface RequestPayload extends BasePayload {
-  timestamp: number;
-  requestType: RequestType;
-  requestData?: string;
+  destinationHash: string;
+  sourceHash: string;
+  cipherMac: string;
+  ciphertext: string; // raw encrypted data as hex
+  timestamp: number; // encrypted, set to 0 unless decrypted
+  requestType: RequestType; // encrypted, default value unless decrypted
+  requestData?: string; // encrypted, empty unless decrypted
+  decrypted?: {
+    timestamp: number;
+    requestType: RequestType;
+    requestData?: string;
+  };
 }
 
 export interface TextMessagePayload extends BasePayload {
