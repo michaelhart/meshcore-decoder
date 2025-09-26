@@ -2,6 +2,8 @@
 
 A TypeScript library for decoding MeshCore mesh networking packets with full cryptographic support.
 
+This powers the [MeshCore Packet Analyzer](https://analyzer.letsme.sh/).
+
 ## Features
 
 - **Packet Decoding**: Decode MeshCore packets
@@ -10,8 +12,16 @@ A TypeScript library for decoding MeshCore mesh networking packets with full cry
 
 ## Installation
 
+### Install to a single project
+
 ```bash
 npm install @michaelhart/meshcore-decoder
+```
+
+### Install CLI (install globally)
+
+```bash
+npm install -g @michaelhart/meshcore-decoder
 ```
 
 ## Quick Start
