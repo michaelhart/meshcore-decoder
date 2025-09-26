@@ -16,7 +16,7 @@ program
   .option('-k, --key <keys...>', 'Channel secret keys for decryption (hex)')
   .option('-j, --json', 'Output as JSON instead of formatted text')
   .option('-s, --structure', 'Show detailed packet structure analysis')
-  .action((hex: string, options: any) => {
+  .action(async (hex: string, options: any) => {
     try {
       // Clean up hex input
       const cleanHex = hex.replace(/\s+/g, '').replace(/^0x/i, '');
@@ -29,13 +29,13 @@ program
         });
       }
       
-      // Decode packet
-      const packet = MeshCorePacketDecoder.decode(cleanHex, { keyStore });
+      // Decode packet with signature verification
+      const packet = await MeshCorePacketDecoder.decodeWithVerification(cleanHex, { keyStore });
       
       if (options.json) {
         // JSON output
         if (options.structure) {
-          const structure = MeshCorePacketDecoder.analyzeStructure(cleanHex, { keyStore });
+          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, { keyStore });
           console.log(JSON.stringify({ packet, structure }, null, 2));
         } else {
           console.log(JSON.stringify(packet, null, 2));
@@ -49,10 +49,10 @@ program
           if (packet.errors) {
             packet.errors.forEach(error => console.log(chalk.red(`   ${error}`)));
           }
-          process.exit(1);
+        } else {
+          console.log(chalk.green('✅ Valid Packet'));
         }
         
-        console.log(chalk.green('✅ Valid Packet'));
         console.log(`${chalk.bold('Message Hash:')} ${packet.messageHash}`);
         console.log(`${chalk.bold('Route Type:')} ${getRouteTypeName(packet.routeType)}`);
         console.log(`${chalk.bold('Payload Type:')} ${getPayloadTypeName(packet.payloadType)}`);
@@ -62,15 +62,20 @@ program
           console.log(`${chalk.bold('Path:')} ${packet.path.join(' → ')}`);
         }
         
-        // Show payload details
+        // Show payload details (even for invalid packets)
         if (packet.payload.decoded) {
           console.log(chalk.cyan('\n=== Payload Details ==='));
           showPayloadDetails(packet.payload.decoded);
         }
         
+        // Exit with error code if packet is invalid
+        if (!packet.isValid) {
+          process.exit(1);
+        }
+        
         // Show structure if requested
         if (options.structure) {
-          const structure = MeshCorePacketDecoder.analyzeStructure(cleanHex, { keyStore });
+          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, { keyStore });
           console.log(chalk.cyan('\n=== Packet Structure ==='));
           
           console.log(chalk.yellow('\nMain Segments:'));
@@ -108,6 +113,20 @@ function showPayloadDetails(payload: any): void {
         console.log(`${chalk.bold('Location:')} ${advert.appData.location.latitude}, ${advert.appData.location.longitude}`);
       }
       console.log(`${chalk.bold('Timestamp:')} ${new Date(advert.timestamp * 1000).toISOString()}`);
+      
+      // Show signature verification status
+      if (advert.signatureValid !== undefined) {
+        if (advert.signatureValid) {
+          console.log(`${chalk.bold('Signature:')} ${chalk.green('✅ Valid Ed25519 signature')}`);
+        } else {
+          console.log(`${chalk.bold('Signature:')} ${chalk.red('❌ Invalid Ed25519 signature')}`);
+          if (advert.signatureError) {
+            console.log(`${chalk.bold('Error:')} ${chalk.red(advert.signatureError)}`);
+          }
+        }
+      } else {
+        console.log(`${chalk.bold('Signature:')} ${chalk.yellow('⚠️ Not verified (use async verification)')}`);
+      }
       break;
       
     case PayloadType.GroupText:

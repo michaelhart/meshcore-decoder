@@ -6,6 +6,7 @@ import { PayloadSegment } from '../../types/packet';
 import { PayloadType, PayloadVersion, DeviceRole, AdvertFlags } from '../../types/enums';
 import { bytesToHex } from '../../utils/hex';
 import { getDeviceRoleName } from '../../utils/enum-names';
+import { Ed25519SignatureVerifier } from '../../crypto/ed25519-verifier';
 
 export class AdvertPayloadDecoder {
   static decode(payload: Uint8Array, options?: { includeSegments?: boolean; segmentOffset?: number }): AdvertPayload & { segments?: PayloadSegment[] } | null {
@@ -189,6 +190,53 @@ export class AdvertPayloadDecoder {
         }
       };
     }
+  }
+
+  /**
+   * Decode advertisement payload with signature verification
+   */
+  static async decodeWithVerification(payload: Uint8Array, options?: { includeSegments?: boolean; segmentOffset?: number }): Promise<AdvertPayload & { segments?: PayloadSegment[] } | null> {
+    // First decode normally
+    const advert = this.decode(payload, options);
+    if (!advert || !advert.isValid) {
+      return advert;
+    }
+
+    // Perform signature verification
+    try {
+      // Extract app_data from the payload (everything after public_key + timestamp + signature)
+      const appDataStart = 32 + 4 + 64; // public_key + timestamp + signature
+      const appDataBytes = payload.subarray(appDataStart);
+      const appDataHex = bytesToHex(appDataBytes);
+
+      const signatureValid = await Ed25519SignatureVerifier.verifyAdvertisementSignature(
+        advert.publicKey,
+        advert.signature,
+        advert.timestamp,
+        appDataHex
+      );
+
+      advert.signatureValid = signatureValid;
+      
+      if (!signatureValid) {
+        advert.signatureError = 'Ed25519 signature verification failed';
+        advert.isValid = false;
+        if (!advert.errors) {
+          advert.errors = [];
+        }
+        advert.errors.push('Invalid Ed25519 signature');
+      }
+    } catch (error) {
+      advert.signatureValid = false;
+      advert.signatureError = error instanceof Error ? error.message : 'Signature verification error';
+      advert.isValid = false;
+      if (!advert.errors) {
+        advert.errors = [];
+      }
+      advert.errors.push('Signature verification failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+
+    return advert;
   }
 
   private static parseDeviceRole(flags: number): DeviceRole {

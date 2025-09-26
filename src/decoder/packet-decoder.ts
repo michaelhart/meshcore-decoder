@@ -27,10 +27,26 @@ export class MeshCorePacketDecoder {
   }
 
   /**
+   * Decode a raw packet from hex string with signature verification for advertisements
+   */
+  static async decodeWithVerification(hexData: string, options?: DecryptionOptions): Promise<DecodedPacket> {
+    const result = await this.parseInternalAsync(hexData, false, options);
+    return result.packet;
+  }
+
+  /**
    * Analyze packet structure for detailed breakdown
    */
   static analyzeStructure(hexData: string, options?: DecryptionOptions): PacketStructure {
     const result = this.parseInternal(hexData, true, options);
+    return result.structure;
+  }
+
+  /**
+   * Analyze packet structure for detailed breakdown with signature verification for advertisements
+   */
+  static async analyzeStructureWithVerification(hexData: string, options?: DecryptionOptions): Promise<PacketStructure> {
+    const result = await this.parseInternalAsync(hexData, true, options);
     return result.structure;
   }
 
@@ -377,6 +393,52 @@ export class MeshCorePacketDecoder {
 
       return { packet: errorPacket, structure: errorStructure };
     }
+  }
+
+  /**
+   * Internal unified parsing method with signature verification for advertisements
+   */
+  private static async parseInternalAsync(hexData: string, includeStructure: boolean, options?: DecryptionOptions): Promise<{
+    packet: DecodedPacket;
+    structure: PacketStructure;
+  }> {
+    // First do the regular parsing
+    const result = this.parseInternal(hexData, includeStructure, options);
+    
+    // If it's an advertisement, verify the signature
+    if (result.packet.payloadType === PayloadType.Advert && result.packet.payload.decoded) {
+      try {
+        const advertPayload = result.packet.payload.decoded as any;
+        const verifiedAdvert = await AdvertPayloadDecoder.decodeWithVerification(
+          hexToBytes(result.packet.payload.raw),
+          {
+            includeSegments: includeStructure,
+            segmentOffset: 0
+          }
+        );
+        
+        if (verifiedAdvert) {
+          // Update the payload with signature verification results
+          result.packet.payload.decoded = verifiedAdvert;
+          
+          // If the advertisement signature is invalid, mark the whole packet as invalid
+          if (!verifiedAdvert.isValid) {
+            result.packet.isValid = false;
+            result.packet.errors = verifiedAdvert.errors || ['Invalid advertisement signature'];
+          }
+          
+          // Update structure segments if needed
+          if (includeStructure && verifiedAdvert.segments) {
+            result.structure.payload.segments = verifiedAdvert.segments;
+            delete verifiedAdvert.segments;
+          }
+        }
+      } catch (error) {
+        console.error('Signature verification failed:', error);
+      }
+    }
+    
+    return result;
   }
 
   /**

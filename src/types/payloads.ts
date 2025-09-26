@@ -13,6 +13,8 @@ export interface AdvertPayload extends BasePayload {
   publicKey: string;
   timestamp: number;
   signature: string;
+  signatureValid?: boolean; // Ed25519 signature verification result
+  signatureError?: string; // Error message if verification failed
   appData: {
     flags: number;
     deviceRole: DeviceRole;

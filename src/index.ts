@@ -35,6 +35,7 @@ export {
 // Crypto exports
 export { MeshCoreKeyStore } from './crypto/key-manager';
 export { ChannelCrypto } from './crypto/channel-crypto';
+export { Ed25519SignatureVerifier } from './crypto/ed25519-verifier';
 
 // Utility exports
 export { hexToBytes, bytesToHex, byteToHex, numberToHex } from './utils/hex';

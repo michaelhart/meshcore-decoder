@@ -26,7 +26,8 @@
   "dependencies": {
     "crypto-js": "^4.2.0",
     "commander": "^12.0.0",
-    "chalk": "^4.1.2"
+    "chalk": "^4.1.2",
+    "@noble/ed25519": "^2.0.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
