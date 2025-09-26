@@ -11,7 +11,7 @@ A TypeScript library for decoding MeshCore mesh networking packets with full cry
 ## Installation
 
 ```bash
-npm install meshcore-decoder
+npm install @michaelhart/meshcore-decoder
 ```
 
 ## Quick Start
@@ -23,7 +23,7 @@ import {
   Utils,
   DecodedPacket,
   AdvertPayload 
-} from 'meshcore-decoder';
+} from '@michaelhart/meshcore-decoder';
 
 // Decode a MeshCore packet
 const hexData: string = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172';
@@ -49,7 +49,7 @@ if (packet.payloadType === PayloadType.Advert && packet.payload.decoded) {
 Here's what a complete decoded packet looks like:
 
 ```typescript
-import { MeshCoreDecoder, DecodedPacket } from 'meshcore-decoder';
+import { MeshCoreDecoder, DecodedPacket } from '@michaelhart/meshcore-decoder';
 
 const hexData: string = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172';
 
@@ -129,7 +129,7 @@ import {
   CryptoKeyStore,
   DecodedPacket,
   GroupTextPayload 
-} from 'meshcore-decoder';
+} from '@michaelhart/meshcore-decoder';
 
 // Create a key store with channel secret keys
 const keyStore: CryptoKeyStore = MeshCoreDecoder.createKeyStore({
@@ -168,7 +168,7 @@ The library automatically:
 For detailed packet analysis and debugging, use `analyzeStructure()` to get byte-level breakdowns:
 
 ```typescript
-import { MeshCoreDecoder, PacketStructure } from 'meshcore-decoder';
+import { MeshCoreDecoder, PacketStructure } from '@michaelhart/meshcore-decoder';
 
 console.log('=== Packet Breakdown ===');
 const hexData: string = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172';
@@ -229,7 +229,7 @@ For quick analysis from the terminal, install globally and use the CLI:
 
 ```bash
 # Install globally
-npm install -g meshcore-decoder
+npm install -g @michaelhart/meshcore-decoder
 
 # Analyze a packet
 meshcore-decoder 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
