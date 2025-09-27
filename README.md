@@ -1,6 +1,6 @@
 # MeshCore Decoder
 
-A TypeScript library for decoding MeshCore mesh networking packets with full cryptographic support.
+A TypeScript library for decoding MeshCore mesh networking packets with full cryptographic support. Uses WebAssembly (WASM) for Ed25519 key derivation through the [orlp/ed25519 library](https://github.com/orlp/ed25519).
 
 This powers the [MeshCore Packet Analyzer](https://analyzer.letsme.sh/).
 
@@ -281,6 +281,133 @@ meshcore-decoder derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b09257
 # Key derivation with JSON output
 meshcore-decoder derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5 --json
 ```
+
+
+## Using with Angular
+
+The library works in Angular (and other browser-based) applications but requires additional configuration for WASM support and browser compatibility.
+
+### 1. Configure Assets in `angular.json`
+
+Add the WASM files to your Angular assets configuration:
+
+```json
+{
+  "projects": {
+    "your-app": {
+      "architect": {
+        "build": {
+          "options": {
+            "assets": [
+              // ... your existing assets ...
+              {
+                "glob": "orlp-ed25519.*",
+                "input": "./node_modules/@michaelhart/meshcore-decoder/lib",
+                "output": "assets/"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 2. Create a WASM Service
+
+Create `src/app/services/meshcore-wasm.ts`:
+
+```typescript
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class MeshCoreWasmService {
+  private wasm: any = null;
+  public ready = new BehaviorSubject<boolean>(false);
+
+  constructor() {
+    this.loadWasm();
+  }
+
+  private async loadWasm() {
+    try {
+      const jsResponse = await fetch('/assets/orlp-ed25519.js');
+      const jsText = await jsResponse.text();
+      
+      const script = document.createElement('script');
+      script.textContent = jsText;
+      document.head.appendChild(script);
+      
+      this.wasm = await (window as any).OrlpEd25519({
+        locateFile: (path: string) => path === 'orlp-ed25519.wasm' ? '/assets/orlp-ed25519.wasm' : path
+      });
+      
+      this.ready.next(true);
+    } catch (error) {
+      console.error('WASM load failed:', error);
+      this.ready.next(false);
+    }
+  }
+
+  derivePublicKey(privateKeyHex: string): string | null {
+    if (!this.wasm) return null;
+    
+    const privateKeyBytes = this.hexToBytes(privateKeyHex);
+    const privateKeyPtr = 1024;
+    const publicKeyPtr = 1088;
+    
+    this.wasm.HEAPU8.set(privateKeyBytes, privateKeyPtr);
+    
+    const result = this.wasm.ccall('orlp_derive_public_key', 'number', ['number', 'number'], [publicKeyPtr, privateKeyPtr]);
+    
+    if (result === 0) {
+      const publicKeyBytes = this.wasm.HEAPU8.subarray(publicKeyPtr, publicKeyPtr + 32);
+      return this.bytesToHex(publicKeyBytes);
+    }
+    
+    return null;
+  }
+
+  private hexToBytes(hex: string): Uint8Array {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return bytes;
+  }
+
+  private bytesToHex(bytes: Uint8Array): string {
+    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+}
+```
+
+### 3. Basic Usage
+
+```typescript
+import { MeshCorePacketDecoder } from '@michaelhart/meshcore-decoder';
+import { MeshCoreWasmService } from './services/meshcore-wasm';
+
+// Basic packet decoding (works immediately)
+const packet = MeshCorePacketDecoder.decode(hexData);
+
+// Key derivation (wait for WASM)
+wasmService.ready.subscribe(isReady => {
+  if (isReady) {
+    const publicKey = wasmService.derivePublicKey(privateKeyHex);
+  }
+});
+```
+
+### Angular/Browser: Important Notes
+
+- **WASM Loading**: The library uses WebAssembly for Ed25519 key derivation. This requires proper asset configuration and a service to handle async WASM loading.
+- **Browser Compatibility**: The library automatically detects the environment and uses Web Crypto API in browsers, Node.js crypto in Node.js.
+- **Async Operations**: Key derivation is async due to WASM loading. Always wait for the `WasmService.ready` observable.
+- **Error Handling**: WASM operations may fail in some environments. Always wrap in try-catch blocks.
+
 
 ## Development
 
