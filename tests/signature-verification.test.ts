@@ -57,21 +57,19 @@ describe('Ed25519 Signature Verification', () => {
       const originalHex = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172';
       
       // Corrupt the signature by changing a few bytes in the signature portion
-      // Signature starts at byte 36 (after 32-byte public key + 4-byte timestamp)
-      // In hex: position 72 (36 * 2)
+      // Signature starts at hex position 76 (where '2E58408D' begins)
       let corruptedHex = originalHex;
       // Change the first few bytes of the signature from '2E58408D' to 'DEADBEEF'
-      corruptedHex = corruptedHex.substring(0, 72) + 'DEADBEEF' + corruptedHex.substring(80);
+      corruptedHex = corruptedHex.substring(0, 76) + 'DEADBEEF' + corruptedHex.substring(84);
       
       const packet = await MeshCorePacketDecoder.decodeWithVerification(corruptedHex);
       
-      // Basic packet structure should still be valid
-      expect(packet.isValid).toBe(true);
+      expect(packet.isValid).toBe(false); // packet is invalid if the signature is invalid
       expect(packet.routeType).toBe(RouteType.Flood);
       expect(packet.payloadType).toBe(PayloadType.Advert);
       
       const advert = packet.payload.decoded as AdvertPayload;
-      expect(advert.isValid).toBe(true);
+      expect(advert.isValid).toBe(false);
       
       // Signature verification should fail
       expect(advert.signatureValid).toBe(false);

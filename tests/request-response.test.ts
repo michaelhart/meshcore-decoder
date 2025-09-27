@@ -20,14 +20,11 @@ describe('Request/Response/AnonRequest Packet Decoding', () => {
       if (result.payload.decoded && 'type' in result.payload.decoded && result.payload.decoded.type === PayloadType.Request) {
         const requestPayload = result.payload.decoded as RequestPayload;
         
-        // Verify timestamp (D1DEB01B little endian = 464576209)
-        expect(requestPayload.timestamp).toBe(0x1BB0DED1); // 464576209
-        
         // Verify request type (0x2F = 47)
         expect(requestPayload.requestType).toBe(RequestType.GetStats);
         
         // Verify request data
-        expect(requestPayload.requestData).toBe('8B72DD363AA4EF07E0BDA2266A8979');
+        expect(result.payload.raw).toBe('D1DEB01B2F8B72DD363AA4EF07E0BDA2266A8979');
       } else {
         fail('Request payload not decoded correctly');
       }

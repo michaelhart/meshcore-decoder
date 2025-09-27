@@ -233,6 +233,25 @@ The `analyzeStructure()` method provides:
 - **Payload field parsing** for all supported packet types
 - **Human-readable descriptions** for each field
 
+## Ed25519 Key Derivation
+
+The library includes MeshCore-compatible Ed25519 key derivation using the exact orlp/ed25519 algorithm via WebAssembly:
+
+```typescript
+import { Utils } from '@michaelhart/meshcore-decoder';
+
+// Derive public key from MeshCore private key (64-byte format)
+const privateKey = '18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5';
+
+const publicKey = await Utils.derivePublicKey(privateKey);
+console.log('Derived Public Key:', publicKey);
+// Output: 4852B69364572B52EFA1B6BB3E6D0ABED4F389A1CBFBB60A9BBA2CCE649CAF0E
+
+// Validate a key pair
+const isValid = await Utils.validateKeyPair(privateKey, publicKey);
+console.log('Key pair valid:', isValid); // true
+```
+
 ### Command Line Interface
 
 For quick analysis from the terminal, install globally and use the CLI:
@@ -252,6 +271,15 @@ meshcore-decoder --structure 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7
 
 # JSON output
 meshcore-decoder --json 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+
+# Derive public key from MeshCore private key
+meshcore-decoder derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5
+
+# Validate key pair
+meshcore-decoder derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5 --validate 4852b69364572b52efa1b6bb3e6d0abed4f389a1cbfbb60a9bba2cce649caf0e
+
+# Key derivation with JSON output
+meshcore-decoder derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5 --json
 ```
 
 ## Development

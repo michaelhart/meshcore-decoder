@@ -4,6 +4,7 @@
 import * as ed25519 from '@noble/ed25519';
 import { createHash } from 'crypto';
 import { hexToBytes, bytesToHex } from '../utils/hex';
+import { derivePublicKey as derivePublicKeyWasm, validateKeyPair as validateKeyPairWasm } from './orlp-ed25519-wasm';
 
 // Set up SHA-512 for @noble/ed25519
 (ed25519 as any).etc.sha512Sync = (message: Uint8Array) => createHash('sha512').update(message).digest();
@@ -90,4 +91,64 @@ export class Ed25519SignatureVerifier {
     const message = this.constructAdvertSignedMessage(publicKeyHex, timestamp, appData);
     return bytesToHex(message);
   }
+
+  /**
+   * Derive Ed25519 public key from orlp/ed25519 private key format
+   * This implements the same algorithm as orlp/ed25519's ed25519_derive_pub()
+   * 
+   * @param privateKeyHex - 64-byte private key in hex format (orlp/ed25519 format)
+   * @returns 32-byte public key in hex format
+   */
+  static async derivePublicKey(privateKeyHex: string): Promise<string> {
+    try {
+      const privateKeyBytes = hexToBytes(privateKeyHex);
+      
+      if (privateKeyBytes.length !== 64) {
+        throw new Error(`Invalid private key length: expected 64 bytes, got ${privateKeyBytes.length}`);
+      }
+      
+      // Use the orlp/ed25519 WebAssembly implementation
+      return await derivePublicKeyWasm(privateKeyHex);
+    } catch (error) {
+      throw new Error(`Failed to derive public key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Derive Ed25519 public key from orlp/ed25519 private key format (synchronous version)
+   * This implements the same algorithm as orlp/ed25519's ed25519_derive_pub()
+   * 
+   * @param privateKeyHex - 64-byte private key in hex format (orlp/ed25519 format)
+   * @returns 32-byte public key in hex format
+   */
+  static derivePublicKeySync(privateKeyHex: string): string {
+    try {
+      const privateKeyBytes = hexToBytes(privateKeyHex);
+      
+      if (privateKeyBytes.length !== 64) {
+        throw new Error(`Invalid private key length: expected 64 bytes, got ${privateKeyBytes.length}`);
+      }
+      
+      // Note: WASM operations are async, so this sync version throws an error
+      throw new Error('Synchronous key derivation not supported with WASM. Use derivePublicKey() instead.');
+    } catch (error) {
+      throw new Error(`Failed to derive public key: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Validate that a private key correctly derives to the expected public key
+   * 
+   * @param privateKeyHex - 64-byte private key in hex format
+   * @param expectedPublicKeyHex - Expected 32-byte public key in hex format
+   * @returns true if the private key derives to the expected public key
+   */
+  static async validateKeyPair(privateKeyHex: string, expectedPublicKeyHex: string): Promise<boolean> {
+    try {
+      return await validateKeyPairWasm(privateKeyHex, expectedPublicKeyHex);
+    } catch (error) {
+      return false;
+    }
+  }
+
 }

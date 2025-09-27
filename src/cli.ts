@@ -4,6 +4,7 @@ import { MeshCorePacketDecoder } from './decoder/packet-decoder';
 import { PayloadType, DeviceRole } from './types/enums';
 import { getRouteTypeName, getPayloadTypeName, getDeviceRoleName } from './utils/enum-names';
 import { AdvertPayload, GroupTextPayload, TracePayload } from './types/payloads';
+import { Utils } from './index';
 import { program } from 'commander';
 import chalk from 'chalk';
 import * as packageJson from '../package.json';
@@ -11,7 +12,12 @@ import * as packageJson from '../package.json';
 program
   .name('meshcore-decoder')
   .description('CLI tool for decoding MeshCore packets')
-  .version(packageJson.version)
+  .version(packageJson.version);
+
+// Default decode command
+program
+  .command('decode', { isDefault: true })
+  .description('Decode a MeshCore packet')
   .argument('<hex>', 'Hex string of the packet to decode')
   .option('-k, --key <keys...>', 'Channel secret keys for decryption (hex)')
   .option('-j, --json', 'Output as JSON instead of formatted text')
@@ -159,5 +165,79 @@ function showPayloadDetails(payload: any): void {
       console.log(`${chalk.bold('Valid:')} ${payload.isValid ? '✅' : '❌'}`);
   }
 }
+
+// Add key derivation command
+program
+  .command('derive-key')
+  .description('Derive Ed25519 public key from MeshCore private key')
+  .argument('<private-key>', '64-byte private key in hex format')
+  .option('-v, --validate <public-key>', 'Validate against expected public key')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (privateKeyHex: string, options: any) => {
+    try {
+      // Clean up hex input
+      const cleanPrivateKey = privateKeyHex.replace(/\s+/g, '').replace(/^0x/i, '');
+      
+      if (cleanPrivateKey.length !== 128) {
+        console.error(chalk.red('❌ Error: Private key must be exactly 64 bytes (128 hex characters)'));
+        process.exit(1);
+      }
+      
+      if (options.json) {
+        // JSON output
+        const result: any = {
+          privateKey: cleanPrivateKey,
+          derivedPublicKey: await Utils.derivePublicKey(cleanPrivateKey)
+        };
+        
+        if (options.validate) {
+          const cleanExpectedKey = options.validate.replace(/\s+/g, '').replace(/^0x/i, '');
+          result.expectedPublicKey = cleanExpectedKey;
+          result.isValid = await Utils.validateKeyPair(cleanPrivateKey, cleanExpectedKey);
+          result.match = result.derivedPublicKey.toLowerCase() === cleanExpectedKey.toLowerCase();
+        }
+        
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        // Formatted output
+        console.log(chalk.cyan('=== MeshCore Ed25519 Key Derivation ===\n'));
+        
+        console.log(chalk.bold('Private Key (64 bytes):'));
+        console.log(chalk.gray(cleanPrivateKey));
+        console.log();
+        
+        console.log(chalk.bold('Derived Public Key (32 bytes):'));
+        const derivedKey = await Utils.derivePublicKey(cleanPrivateKey);
+        console.log(chalk.green(derivedKey));
+        console.log();
+        
+        if (options.validate) {
+          const cleanExpectedKey = options.validate.replace(/\s+/g, '').replace(/^0x/i, '');
+          console.log(chalk.bold('Expected Public Key:'));
+          console.log(chalk.gray(cleanExpectedKey));
+          console.log();
+          
+          const match = derivedKey.toLowerCase() === cleanExpectedKey.toLowerCase();
+          console.log(chalk.bold('Validation:'));
+          console.log(match ? chalk.green('Keys match') : chalk.red('Keys do not match'));
+          
+          if (!match) {
+            process.exit(1);
+          }
+        }
+        
+        console.log(chalk.green('Key derivation completed successfully'));
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (options.json) {
+        console.log(JSON.stringify({ error: errorMessage }, null, 2));
+      } else {
+        console.error(chalk.red(`Error: ${errorMessage}`));
+      }
+      process.exit(1);
+    }
+  });
 
 program.parse();

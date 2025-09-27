@@ -49,8 +49,11 @@ export {
 
 import * as EnumUtils from './utils/enum-names';
 import * as HexUtils from './utils/hex';
+import { derivePublicKey, validateKeyPair } from './crypto/orlp-ed25519-wasm';
 
 export const Utils = {
   ...EnumUtils,
-  ...HexUtils
+  ...HexUtils,
+  derivePublicKey,
+  validateKeyPair
 };
