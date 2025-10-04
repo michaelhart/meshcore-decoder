@@ -46,14 +46,25 @@ export {
   getDeviceRoleName, 
   getRequestTypeName 
 } from './utils/enum-names';
+export { 
+  createAuthToken, 
+  verifyAuthToken, 
+  parseAuthToken, 
+  decodeAuthTokenPayload 
+} from './utils/auth-token';
+export type { AuthTokenPayload, AuthToken } from './utils/auth-token';
 
 import * as EnumUtils from './utils/enum-names';
 import * as HexUtils from './utils/hex';
-import { derivePublicKey, validateKeyPair } from './crypto/orlp-ed25519-wasm';
+import * as AuthTokenUtils from './utils/auth-token';
+import { derivePublicKey, validateKeyPair, sign, verify } from './crypto/orlp-ed25519-wasm';
 
 export const Utils = {
   ...EnumUtils,
   ...HexUtils,
+  ...AuthTokenUtils,
   derivePublicKey,
-  validateKeyPair
+  validateKeyPair,
+  sign,
+  verify
 };

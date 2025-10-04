@@ -6,15 +6,12 @@ import { hexToBytes, bytesToHex } from '../utils/hex';
 // Import the generated WASM module
 const OrlpEd25519 = require('../../lib/orlp-ed25519.js');
 
-let wasmModule: any = null;
-
 /**
- * Initialize the orlp/ed25519 WebAssembly module
+ * Get a fresh WASM instance
+ * Loads a fresh instance each time because the WASM module could behave unpredictably otherwise
  */
-async function initWasm(): Promise<void> {
-  if (!wasmModule) {
-    wasmModule = await OrlpEd25519();
-  }
+async function getWasmInstance(): Promise<any> {
+  return await OrlpEd25519();
 }
 
 /**
@@ -24,7 +21,7 @@ async function initWasm(): Promise<void> {
  * @returns 32-byte public key in hex format
  */
 export async function derivePublicKey(privateKeyHex: string): Promise<string> {
-  await initWasm();
+  const wasmModule = await getWasmInstance();
   
   const privateKeyBytes = hexToBytes(privateKeyHex);
   
@@ -67,7 +64,7 @@ export async function derivePublicKey(privateKeyHex: string): Promise<string> {
  */
 export async function validateKeyPair(privateKeyHex: string, expectedPublicKeyHex: string): Promise<boolean> {
   try {
-    await initWasm();
+    const wasmModule = await getWasmInstance();
     
     const privateKeyBytes = hexToBytes(privateKeyHex);
     const expectedPublicKeyBytes = hexToBytes(expectedPublicKeyHex);
@@ -99,6 +96,103 @@ export async function validateKeyPair(privateKeyHex: string, expectedPublicKeyHe
     return result === 1;
   } catch (error) {
     // Invalid hex strings or other errors should return false
+    return false;
+  }
+}
+
+/**
+ * Sign a message using Ed25519 with orlp/ed25519 implementation
+ * 
+ * @param messageHex - Message to sign in hex format
+ * @param privateKeyHex - 64-byte private key in hex format (orlp/ed25519 format)
+ * @param publicKeyHex - 32-byte public key in hex format
+ * @returns 64-byte signature in hex format
+ */
+export async function sign(messageHex: string, privateKeyHex: string, publicKeyHex: string): Promise<string> {
+  const wasmModule = await getWasmInstance();
+  
+  const messageBytes = hexToBytes(messageHex);
+  const privateKeyBytes = hexToBytes(privateKeyHex);
+  const publicKeyBytes = hexToBytes(publicKeyHex);
+  
+  if (privateKeyBytes.length !== 64) {
+    throw new Error(`Invalid private key length: expected 64 bytes, got ${privateKeyBytes.length}`);
+  }
+  
+  if (publicKeyBytes.length !== 32) {
+    throw new Error(`Invalid public key length: expected 32 bytes, got ${publicKeyBytes.length}`);
+  }
+  
+  // Allocate memory buffers with large gaps to avoid conflicts with scratch space
+  const messagePtr = 100000;
+  const privateKeyPtr = 200000;
+  const publicKeyPtr = 300000;
+  const signaturePtr = 400000;
+  
+  // Copy data to WASM memory
+  wasmModule.HEAPU8.set(messageBytes, messagePtr);
+  wasmModule.HEAPU8.set(privateKeyBytes, privateKeyPtr);
+  wasmModule.HEAPU8.set(publicKeyBytes, publicKeyPtr);
+  
+  // Call orlp_sign
+  wasmModule.ccall(
+    'orlp_sign',
+    'void',
+    ['number', 'number', 'number', 'number', 'number'],
+    [signaturePtr, messagePtr, messageBytes.length, publicKeyPtr, privateKeyPtr]
+  );
+  
+  // Read signature
+  const signatureBytes = new Uint8Array(64);
+  signatureBytes.set(wasmModule.HEAPU8.subarray(signaturePtr, signaturePtr + 64));
+  
+  return bytesToHex(signatureBytes);
+}
+
+/**
+ * Verify an Ed25519 signature using orlp/ed25519 implementation
+ * 
+ * @param signatureHex - 64-byte signature in hex format
+ * @param messageHex - Message that was signed in hex format
+ * @param publicKeyHex - 32-byte public key in hex format
+ * @returns true if signature is valid, false otherwise
+ */
+export async function verify(signatureHex: string, messageHex: string, publicKeyHex: string): Promise<boolean> {
+  try {
+    const wasmModule = await getWasmInstance();
+    
+    const signatureBytes = hexToBytes(signatureHex);
+    const messageBytes = hexToBytes(messageHex);
+    const publicKeyBytes = hexToBytes(publicKeyHex);
+    
+    if (signatureBytes.length !== 64) {
+      return false;
+    }
+    
+    if (publicKeyBytes.length !== 32) {
+      return false;
+    }
+    
+    // Allocate memory buffers with large gaps to avoid conflicts with scratch space
+    const messagePtr = 500000;
+    const signaturePtr = 600000;
+    const publicKeyPtr = 700000;
+    
+    // Copy data to WASM memory
+    wasmModule.HEAPU8.set(signatureBytes, signaturePtr);
+    wasmModule.HEAPU8.set(messageBytes, messagePtr);
+    wasmModule.HEAPU8.set(publicKeyBytes, publicKeyPtr);
+    
+    // Call the orlp verify function
+    const result = wasmModule.ccall(
+      'orlp_verify',
+      'number',
+      ['number', 'number', 'number', 'number'],
+      [signaturePtr, messagePtr, messageBytes.length, publicKeyPtr]
+    );
+    
+    return result === 1;
+  } catch (error) {
     return false;
   }
 }

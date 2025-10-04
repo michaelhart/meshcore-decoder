@@ -10,7 +10,7 @@ echo "Building orlp/ed25519 WebAssembly module..."
 emcc \
   -O3 \
   -s WASM=1 \
-  -s EXPORTED_FUNCTIONS='["_orlp_derive_public_key", "_orlp_validate_keypair"]' \
+  -s EXPORTED_FUNCTIONS='["_orlp_derive_public_key", "_orlp_validate_keypair", "_orlp_sign", "_orlp_verify"]' \
   -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "HEAPU8", "HEAP8", "HEAPU32", "HEAP32"]' \
   -s MODULARIZE=1 \
   -s EXPORT_NAME="OrlpEd25519" \
