@@ -240,4 +240,155 @@ program
     }
   });
 
+// Add auth-token command
+program
+  .command('auth-token')
+  .description('Generate JWT authentication token signed with Ed25519 private key')
+  .argument('<public-key>', '32-byte public key in hex format')
+  .argument('<private-key>', '64-byte private key in hex format')
+  .option('-e, --exp <seconds>', 'Token expiration in seconds from now (default: 86400 = 24 hours)', '86400')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (publicKeyHex: string, privateKeyHex: string, options: any) => {
+    try {
+      const { createAuthToken } = await import('./utils/auth-token');
+      
+      // Clean up hex inputs
+      const cleanPublicKey = publicKeyHex.replace(/\s+/g, '').replace(/^0x/i, '');
+      const cleanPrivateKey = privateKeyHex.replace(/\s+/g, '').replace(/^0x/i, '');
+      
+      if (cleanPublicKey.length !== 64) {
+        console.error(chalk.red('❌ Error: Public key must be exactly 32 bytes (64 hex characters)'));
+        process.exit(1);
+      }
+      
+      if (cleanPrivateKey.length !== 128) {
+        console.error(chalk.red('❌ Error: Private key must be exactly 64 bytes (128 hex characters)'));
+        process.exit(1);
+      }
+      
+      const expSeconds = parseInt(options.exp);
+      const iat = Math.floor(Date.now() / 1000);
+      const exp = iat + expSeconds;
+      
+      const token = await createAuthToken(
+        {
+          publicKey: cleanPublicKey.toUpperCase(),
+          iat,
+          exp
+        },
+        cleanPrivateKey,
+        cleanPublicKey.toUpperCase()
+      );
+      
+      if (options.json) {
+        console.log(JSON.stringify({
+          token,
+          publicKey: cleanPublicKey.toUpperCase(),
+          iat,
+          exp,
+          expiresIn: expSeconds
+        }, null, 2));
+      } else {
+        console.log(token);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (options.json) {
+        console.log(JSON.stringify({ error: errorMessage }, null, 2));
+      } else {
+        console.error(chalk.red(`Error: ${errorMessage}`));
+      }
+      process.exit(1);
+    }
+  });
+
+// Add verify-token command
+program
+  .command('verify-token')
+  .description('Verify JWT authentication token')
+  .argument('<token>', 'JWT token to verify')
+  .option('-p, --public-key <key>', 'Expected public key in hex format (optional)')
+  .option('-j, --json', 'Output as JSON')
+  .action(async (token: string, options: any) => {
+    try {
+      const { verifyAuthToken } = await import('./utils/auth-token');
+      
+      const cleanToken = token.trim();
+      let expectedPublicKey: string | undefined;
+      
+      if (options.publicKey) {
+        const cleanKey = options.publicKey.replace(/\s+/g, '').replace(/^0x/i, '').toUpperCase();
+        if (cleanKey.length !== 64) {
+          console.error(chalk.red('❌ Error: Public key must be exactly 32 bytes (64 hex characters)'));
+          process.exit(1);
+        }
+        expectedPublicKey = cleanKey;
+      }
+      
+      const payload = await verifyAuthToken(cleanToken, expectedPublicKey);
+      
+      if (payload) {
+        const now = Math.floor(Date.now() / 1000);
+        const isExpired = payload.exp && now > payload.exp;
+        const timeToExpiry = payload.exp ? payload.exp - now : null;
+        
+        if (options.json) {
+          console.log(JSON.stringify({
+            valid: true,
+            expired: isExpired,
+            payload,
+            timeToExpiry
+          }, null, 2));
+        } else {
+          console.log(chalk.green('✅ Token is valid'));
+          console.log(chalk.cyan('\nPayload:'));
+          console.log(`  Public Key: ${payload.publicKey}`);
+          console.log(`  Issued At:  ${new Date(payload.iat * 1000).toISOString()} (${payload.iat})`);
+          if (payload.exp) {
+            console.log(`  Expires At: ${new Date(payload.exp * 1000).toISOString()} (${payload.exp})`);
+            if (isExpired) {
+              console.log(chalk.red(`  Status:     EXPIRED`));
+            } else {
+              console.log(chalk.green(`  Status:     Valid for ${timeToExpiry} more seconds`));
+            }
+          }
+          
+          // Show any additional claims
+          const standardClaims = ['publicKey', 'iat', 'exp'];
+          const customClaims = Object.keys(payload).filter(k => !standardClaims.includes(k));
+          if (customClaims.length > 0) {
+            console.log(chalk.cyan('\nCustom Claims:'));
+            customClaims.forEach(key => {
+              console.log(`  ${key}: ${JSON.stringify(payload[key])}`);
+            });
+          }
+        }
+      } else {
+        if (options.json) {
+          console.log(JSON.stringify({
+            valid: false,
+            error: 'Token verification failed'
+          }, null, 2));
+        } else {
+          console.error(chalk.red('❌ Token verification failed'));
+          console.error(chalk.yellow('Possible reasons:'));
+          console.error('  - Invalid signature');
+          console.error('  - Token format is incorrect');
+          console.error('  - Public key mismatch (if --public-key was provided)');
+        }
+        process.exit(1);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (options.json) {
+        console.log(JSON.stringify({ valid: false, error: errorMessage }, null, 2));
+      } else {
+        console.error(chalk.red(`Error: ${errorMessage}`));
+      }
+      process.exit(1);
+    }
+  });
+
 program.parse();
