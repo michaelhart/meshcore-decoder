@@ -14,6 +14,8 @@ export interface AuthTokenPayload {
   iat: number;
   /** Unix timestamp when token expires (optional) */
   exp?: number;
+  /** Audience claim (optional) */
+  aud?: string;
   /** Custom claims */
   [key: string]: any;
 }

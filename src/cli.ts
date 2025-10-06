@@ -247,6 +247,7 @@ program
   .argument('<public-key>', '32-byte public key in hex format')
   .argument('<private-key>', '64-byte private key in hex format')
   .option('-e, --exp <seconds>', 'Token expiration in seconds from now (default: 86400 = 24 hours)', '86400')
+  .option('-c, --claims <json>', 'Additional claims as JSON object (e.g., \'{"aud":"mqtt.example.com","sub":"device-123"}\')')
   .option('-j, --json', 'Output as JSON')
   .action(async (publicKeyHex: string, privateKeyHex: string, options: any) => {
     try {
@@ -270,12 +271,25 @@ program
       const iat = Math.floor(Date.now() / 1000);
       const exp = iat + expSeconds;
       
+      const payload: any = {
+        publicKey: cleanPublicKey.toUpperCase(),
+        iat,
+        exp
+      };
+      
+      // Parse and merge additional claims if provided
+      if (options.claims) {
+        try {
+          const additionalClaims = JSON.parse(options.claims);
+          Object.assign(payload, additionalClaims);
+        } catch (e) {
+          console.error(chalk.red('❌ Error: Invalid JSON in --claims option'));
+          process.exit(1);
+        }
+      }
+      
       const token = await createAuthToken(
-        {
-          publicKey: cleanPublicKey.toUpperCase(),
-          iat,
-          exp
-        },
+        payload,
         cleanPrivateKey,
         cleanPublicKey.toUpperCase()
       );
@@ -283,10 +297,7 @@ program
       if (options.json) {
         console.log(JSON.stringify({
           token,
-          publicKey: cleanPublicKey.toUpperCase(),
-          iat,
-          exp,
-          expiresIn: expSeconds
+          payload
         }, null, 2));
       } else {
         console.log(token);
