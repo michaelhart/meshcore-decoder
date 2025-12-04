@@ -18,6 +18,10 @@ export type {
   AckPayload, 
   PathPayload,
   ResponsePayload,
+  ControlPayloadBase,
+  ControlDiscoverReqPayload,
+  ControlDiscoverRespPayload,
+  ControlPayload,
   PayloadData 
 } from './types/payloads';
 export type { CryptoKeyStore, DecryptionOptions, DecryptionResult, ValidationResult } from './types/crypto';
@@ -29,7 +33,8 @@ export {
   PayloadVersion, 
   DeviceRole, 
   AdvertFlags, 
-  RequestType 
+  RequestType,
+  ControlSubType
 } from './types/enums';
 
 // Crypto exports
@@ -44,7 +49,8 @@ export {
   getPayloadTypeName, 
   getPayloadVersionName, 
   getDeviceRoleName, 
-  getRequestTypeName 
+  getRequestTypeName,
+  getControlSubTypeName
 } from './utils/enum-names';
 export { 
   createAuthToken, 

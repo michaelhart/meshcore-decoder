@@ -19,7 +19,14 @@ export enum PayloadType {
   Path = 0x08,
   Trace = 0x09,
   Multipart = 0x0A,
+  Control = 0x0B,
   RawCustom = 0x0F
+}
+
+// Control packet sub-types (upper 4 bits of first payload byte)
+export enum ControlSubType {
+  NodeDiscoverReq = 0x80,
+  NodeDiscoverResp = 0x90
 }
 
 export enum PayloadVersion {
@@ -30,6 +37,7 @@ export enum PayloadVersion {
 }
 
 export enum DeviceRole {
+  Unknown = 0x00,
   ChatNode = 0x01,
   Repeater = 0x02,
   RoomServer = 0x03,

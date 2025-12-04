@@ -16,6 +16,7 @@ import { AnonRequestPayloadDecoder } from './payload-decoders/anon-request';
 import { AckPayloadDecoder } from './payload-decoders/ack';
 import { PathPayloadDecoder } from './payload-decoders/path';
 import { TextMessagePayloadDecoder } from './payload-decoders/text-message';
+import { ControlPayloadDecoder } from './payload-decoders/control';
 
 export class MeshCorePacketDecoder {
   /**
@@ -317,6 +318,16 @@ export class MeshCorePacketDecoder {
         decodedPayload = PathPayloadDecoder.decode(payloadBytes);
       } else if (payloadType === PayloadType.TextMessage) {
         decodedPayload = TextMessagePayloadDecoder.decode(payloadBytes);
+      } else if (payloadType === PayloadType.Control) {
+        const result = ControlPayloadDecoder.decode(payloadBytes, {
+          includeSegments: includeStructure,
+          segmentOffset: 0
+        });
+        decodedPayload = result;
+        if (result?.segments) {
+          payloadSegments.push(...result.segments);
+          delete result.segments;
+        }
       }
 
       // if no segments were generated and we need structure, show basic payload info

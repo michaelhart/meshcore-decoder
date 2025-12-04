@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
 // MIT License
 
-import { RouteType, PayloadType, PayloadVersion, DeviceRole, RequestType } from '../types/enums';
+import { RouteType, PayloadType, PayloadVersion, DeviceRole, RequestType, ControlSubType } from '../types/enums';
 
 /**
  * Get human-readable name for RouteType enum value
@@ -33,6 +33,7 @@ export function getPayloadTypeName(payloadType: PayloadType): string {
     case PayloadType.Ack: return 'Ack';
     case PayloadType.Path: return 'Path';
     case PayloadType.Multipart: return 'Multipart';
+    case PayloadType.Control: return 'Control';
     default: return `Unknown (${payloadType})`;
   }
 }
@@ -55,11 +56,12 @@ export function getPayloadVersionName(version: PayloadVersion): string {
  */
 export function getDeviceRoleName(role: DeviceRole): string {
   switch (role) {
+    case DeviceRole.Unknown: return 'Unknown';
     case DeviceRole.ChatNode: return 'Chat Node';
     case DeviceRole.Repeater: return 'Repeater';
     case DeviceRole.RoomServer: return 'Room Server';
     case DeviceRole.Sensor: return 'Sensor';
-    default: return `Unknown (${role})`;
+    default: return `Unknown (${role as number})`;
   }
 }
 
@@ -74,5 +76,16 @@ export function getRequestTypeName(requestType: RequestType): string {
     case RequestType.GetMinMaxAvgData: return 'Get Min/Max/Avg Data';
     case RequestType.GetAccessList: return 'Get Access List';
     default: return `Unknown (${requestType})`;
+  }
+}
+
+/**
+ * Get human-readable name for ControlSubType enum value
+ */
+export function getControlSubTypeName(subType: ControlSubType): string {
+  switch (subType) {
+    case ControlSubType.NodeDiscoverReq: return 'Node Discover Request';
+    case ControlSubType.NodeDiscoverResp: return 'Node Discover Response';
+    default: return `Unknown (0x${(subType as number).toString(16)})`;
   }
 }
