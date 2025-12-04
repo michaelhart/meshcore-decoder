@@ -34,7 +34,7 @@ export function getPayloadTypeName(payloadType: PayloadType): string {
     case PayloadType.Path: return 'Path';
     case PayloadType.Multipart: return 'Multipart';
     case PayloadType.Control: return 'Control';
-    default: return `Unknown (${payloadType})`;
+    default: return `Unknown (0x${(payloadType as number).toString(16)})`;
   }
 }
 

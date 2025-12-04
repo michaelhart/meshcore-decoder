@@ -1,6 +1,6 @@
 {
   "name": "@michaelhart/meshcore-decoder",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "TypeScript library for decoding MeshCore packets",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
