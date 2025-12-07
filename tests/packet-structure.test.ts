@@ -141,6 +141,50 @@ describe('Packet Structure Analysis', () => {
     });
   });
 
+  describe('TextMessage Packet Structure', () => {
+    it('should break down TextMessage payload segments correctly', () => {
+      const structure = MeshCorePacketDecoder.analyzeStructure(TEXT_MESSAGE_PACKET);
+      
+      expect(structure.payload.segments).toHaveLength(4);
+      
+      // Destination Hash
+      expect(structure.payload.segments[0]).toEqual({
+        name: 'Destination Hash',
+        description: 'First byte of destination node public key',
+        startByte: 0,
+        endByte: 0,
+        value: 'D0'
+      });
+      
+      // Source Hash
+      expect(structure.payload.segments[1]).toEqual({
+        name: 'Source Hash',
+        description: 'First byte of source node public key',
+        startByte: 1,
+        endByte: 1,
+        value: '0A'
+      });
+      
+      // Cipher MAC
+      expect(structure.payload.segments[2]).toEqual({
+        name: 'Cipher MAC',
+        description: 'MAC for encrypted data in next field',
+        startByte: 2,
+        endByte: 3,
+        value: '13E1'
+      });
+      
+      // Ciphertext
+      expect(structure.payload.segments[3]).toEqual({
+        name: 'Ciphertext',
+        description: 'Encrypted message data (timestamp + message text)',
+        startByte: 4,
+        endByte: 19,
+        value: '6AB5B94B1CC2D1A5059C6E5A6253C60D'
+      });
+    });
+  });
+
   describe('Advert Packet Structure', () => {
     it('should break down Advert payload segments correctly', () => {
       const structure = MeshCorePacketDecoder.analyzeStructure(ADVERT_PACKET);

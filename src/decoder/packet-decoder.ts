@@ -317,7 +317,15 @@ export class MeshCorePacketDecoder {
       } else if (payloadType === PayloadType.Path) {
         decodedPayload = PathPayloadDecoder.decode(payloadBytes);
       } else if (payloadType === PayloadType.TextMessage) {
-        decodedPayload = TextMessagePayloadDecoder.decode(payloadBytes);
+        const result = TextMessagePayloadDecoder.decode(payloadBytes, {
+          includeSegments: includeStructure,
+          segmentOffset: 0
+        });
+        decodedPayload = result;
+        if (result?.segments) {
+          payloadSegments.push(...result.segments);
+          delete result.segments;
+        }
       } else if (payloadType === PayloadType.Control) {
         const result = ControlPayloadDecoder.decode(payloadBytes, {
           includeSegments: includeStructure,
