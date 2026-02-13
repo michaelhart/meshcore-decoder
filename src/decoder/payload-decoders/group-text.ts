@@ -105,7 +105,8 @@ export class GroupTextPayloadDecoder {
               timestamp: decryptionResult.data.timestamp,
               flags: decryptionResult.data.flags,
               sender: decryptionResult.data.sender,
-              message: decryptionResult.data.message
+              message: decryptionResult.data.message,
+              channelKey: channelKey
             };
             break; // stop trying keys once we find one that works
           }
