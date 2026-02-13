@@ -46,6 +46,7 @@ export interface GroupTextPayload extends BasePayload {
     flags: number;
     sender?: string;
     message: string;
+    channelKey?: string;
   };
 }
 
