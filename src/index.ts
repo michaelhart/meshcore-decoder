@@ -41,6 +41,14 @@ export {
 export { MeshCoreKeyStore } from './crypto/key-manager';
 export { ChannelCrypto } from './crypto/channel-crypto';
 export { Ed25519SignatureVerifier } from './crypto/ed25519-verifier';
+export {
+  calcRegionKey,
+  calcTransportCode,
+  calcTransportCodeForRegion,
+  transportCodeMatchesRegion,
+  normalizeRegionName,
+  REGION_KEY_SIZE
+} from './crypto/region-transport';
 
 // Utility exports
 export { hexToBytes, bytesToHex, byteToHex, numberToHex } from './utils/hex';
