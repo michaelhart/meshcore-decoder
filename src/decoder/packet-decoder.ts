@@ -128,13 +128,20 @@ export class MeshCorePacketDecoder {
         transportCodes = [code1, code2];
 
         if (includeStructure) {
-          const transportCode = (bytes[offset]) | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
+          // MeshCore uses these as region transport codes: [0]=scope/region, [1]=return/home region
           segments.push({
-            name: 'Transport Code',
-            description: 'Used for Direct/Response routing',
+            name: 'Region/Scope (transport code 0)',
+            description: 'Region scope for this packet (repeaters match this to named regions, e.g. #Europe)',
             startByte: offset,
+            endByte: offset + 1,
+            value: `0x${(bytes[offset] | (bytes[offset + 1] << 8)).toString(16).padStart(4, '0')} (${code1})`
+          });
+          segments.push({
+            name: 'Return region (transport code 1)',
+            description: 'Sender\'s home/return region (used for replies)',
+            startByte: offset + 2,
             endByte: offset + 3,
-            value: `0x${transportCode.toString(16).padStart(8, '0')}`
+            value: `0x${(bytes[offset + 2] | (bytes[offset + 3] << 8)).toString(16).padStart(4, '0')} (${code2})`
           });
         }
         offset += 4;

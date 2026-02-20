@@ -189,6 +189,49 @@ structure.payload.segments.forEach((seg, i) => {
 });
 ```
 
+### Regions (transport codes)
+
+MeshCore repeaters use **regions** (e.g. `#Europe`, `*`) to control which packets are flooded or blocked. Region information is **not** inside the GroupText (or other) payload; it is carried in the **packet header** as **transport codes** when the route type is **Transport flood** (`0x00`) or **Transport direct** (`0x03`).
+
+The decoder already extracts these:
+
+- **`transportCodes`** on `DecodedPacket`: `[number, number]` when present.  
+  - `transportCodes[0]`: region/scope for this packet (repeaters match this to a named region).  
+  - `transportCodes[1]`: sender’s return/home region (used for replies).
+
+Use `packet.transportCodes` for group chat (and any other) packets that use transport routing. With `analyzeStructure()`, the main segments show "Region/Scope (transport code 0)" and "Return region (transport code 1)" when present.
+
+**Calculating the region code from a region name**
+
+The transport code is derived from the region name and the **packet payload** (so the same region produces different codes for different packets). The library matches the MeshCore firmware logic:
+
+- **Region key**: first 16 bytes of `SHA256(regionName)` (e.g. `"#Europe"`).
+- **Transport code**: first 2 bytes of `HMAC-SHA256(regionKey, payloadType || payload)` as little-endian uint16; 0 and 0xFFFF are reserved.
+
+```typescript
+import {
+  MeshCoreDecoder,
+  calcRegionKey,
+  calcTransportCodeForRegion,
+  transportCodeMatchesRegion,
+  PayloadType,
+  hexToBytes
+} from 'meshcore-decoder';
+
+// Key for a named region (e.g. "#Europe")
+const regionKey = calcRegionKey('#Europe');
+
+// For a given packet payload, compute the transport code that would match this region
+const payloadHex = packet.payload.raw; // from a decoded packet
+const payloadBytes = hexToBytes(payloadHex);
+const code = calcTransportCodeForRegion('#Europe', PayloadType.GroupText, payloadBytes);
+
+// Check if a decoded packet's first transport code matches a region
+if (packet.transportCodes && transportCodeMatchesRegion('#Europe', packet.payloadType, payloadHex, packet.transportCodes[0])) {
+  console.log('Packet is for region #Europe');
+}
+```
+
 **Output:**
 ```
 === Packet Breakdown ===
