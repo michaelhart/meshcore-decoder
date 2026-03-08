@@ -97,6 +97,7 @@ export interface AckPayload extends BasePayload {
 
 export interface PathPayload extends BasePayload {
   pathLength: number;
+  pathHashSize?: number;
   pathHashes: string[];
   extraType: number;
   extraData: string;
