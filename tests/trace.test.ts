@@ -52,4 +52,25 @@ describe('Trace Packets', () => {
       expect(trace.errors).toBeDefined();
     }
   });
+
+  it('should decode multibyte trace path hashes from flags', () => {
+    const hexData = '260130040302010A0B0C0D01AABBCCDD';
+
+    const packet = MeshCorePacketDecoder.decode(hexData);
+
+    expect(packet.isValid).toBe(true);
+    expect(packet.routeType).toBe(RouteType.Direct);
+    expect(packet.payloadType).toBe(PayloadType.Trace);
+    expect(packet.pathLength).toBe(1);
+    expect(packet.path).toEqual(['30']);
+
+    const trace = packet.payload.decoded as TracePayload;
+    expect(trace.isValid).toBe(true);
+    expect(trace.traceTag).toBe('01020304');
+    expect(trace.authCode).toBe(0x0d0c0b0a);
+    expect(trace.flags).toBe(1);
+    expect(trace.pathHashSize).toBe(2);
+    expect(trace.pathHashes).toEqual(['AABB', 'CCDD']);
+    expect(trace.snrValues).toEqual([12]);
+  });
 });
