@@ -81,7 +81,8 @@ export class TracePayloadDecoder {
       }
       offset += 1;
 
-      // lower two flag bits encode bytes per trace hop hash: 1 << n => 1, 2, 4, 8
+      // v1.11+: lower two flag bits are trace path hash size: 1 << n => 1, 2, 4, 8
+      // Note: This is distinct from the path hash size in the packet header added in 1.14
       const pathHashSize = 1 << (flags & 0x03);
       if (payload.length < offset || (payload.length - offset) % pathHashSize !== 0) {
         return {
