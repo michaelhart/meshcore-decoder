@@ -233,6 +233,16 @@ The `analyzeStructure()` method provides:
 - **Payload field parsing** for all supported packet types
 - **Human-readable descriptions** for each field
 
+MeshCore's packet `path_len` byte is a packed field, not a raw byte count:
+- low 6 bits = number of path hashes
+- high 2 bits = hash width minus 1
+
+The decoder exposes:
+- `pathLength`: raw encoded `path_len` byte
+- `pathHashCount`: decoded hop-hash count
+- `pathHashSize`: decoded hop-hash width in bytes
+- `pathByteLength`: actual path byte length on the wire
+
 ## Ed25519 Key Derivation
 
 The library includes MeshCore-compatible Ed25519 key derivation using the exact orlp/ed25519 algorithm via WebAssembly:

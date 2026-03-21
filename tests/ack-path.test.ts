@@ -14,6 +14,9 @@ describe('Ack/Path Packet Decoding', () => {
       expect(result.isValid).toBe(true);
       expect(result.payloadType).toBe(PayloadType.Ack);
       expect(result.pathLength).toBe(4);
+      expect(result.pathHashCount).toBe(4);
+      expect(result.pathHashSize).toBe(1);
+      expect(result.pathByteLength).toBe(4);
       
       if (result.payload.decoded && 'type' in result.payload.decoded && result.payload.decoded.type === PayloadType.Ack) {
         const ackPayload = result.payload.decoded as AckPayload;
@@ -35,6 +38,9 @@ describe('Ack/Path Packet Decoding', () => {
       expect(result.isValid).toBe(true);
       expect(result.payloadType).toBe(PayloadType.Path);
       expect(result.pathLength).toBe(5); // 5 bytes in packet-level path
+      expect(result.pathHashCount).toBe(5);
+      expect(result.pathHashSize).toBe(1);
+      expect(result.pathByteLength).toBe(5);
       expect(result.path).toEqual(['F4', '64', 'C7', '7E', '41']); // Packet-level path data
       expect(result.messageHash).toBe('A574CE1D');
       expect(result.totalBytes).toBe(27);
