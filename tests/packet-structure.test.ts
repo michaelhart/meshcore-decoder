@@ -248,7 +248,8 @@ describe('Packet Structure Analysis', () => {
       const pathDataSegment = structure.segments.find(s => s.name === 'Path Data');
       
       expect(pathLengthSegment).toBeDefined();
-      expect(pathLengthSegment!.value).toBe('0x04'); // 4 bytes of path data
+      expect(pathLengthSegment!.value).toBe('0x04');
+      expect(pathLengthSegment!.description).toContain('4 hop hashes x 1 byte(s) = 4 route bytes');
       
       expect(pathDataSegment).toBeDefined();
       expect(pathDataSegment!.value).toBe('6F17C47E'); // Path bytes

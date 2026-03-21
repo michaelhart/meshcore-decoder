@@ -68,6 +68,9 @@ export class MeshCorePacketDecoder {
         payloadType: PayloadType.RawCustom,
         payloadVersion: PayloadVersion.Version1,
         pathLength: 0,
+        pathHashCount: 0,
+        pathHashSize: 0,
+        pathByteLength: 0,
         path: null,
         payload: { raw: '', decoded: null },
         totalBytes: bytes.length,
@@ -162,13 +165,19 @@ export class MeshCorePacketDecoder {
         throw new Error('Packet too short for path length');
       }
       const pathLength = bytes[offset];
+      const pathHashCount = pathLength & 0x3F;
+      const pathHashSize = (pathLength >> 6) + 1;
+      if (pathHashSize === 4) {
+        throw new Error('Invalid path encoding: 4-byte path hashes are reserved');
+      }
+      const pathByteLength = pathHashCount * pathHashSize;
 
       if (includeStructure) {
-        let pathLengthDescription = `Path contains ${pathLength} bytes`;
+        let pathLengthDescription = `Packed path encoding: ${pathHashCount} hop hashes x ${pathHashSize} byte(s) = ${pathByteLength} path bytes`;
         if (routeType === RouteType.Direct || routeType === RouteType.TransportDirect) {
-          pathLengthDescription = `For "Direct" packets, this contains routing instructions. ${pathLength} bytes of routing instructions (decreases as packet travels)`;
+          pathLengthDescription = `Packed direct-path encoding: ${pathHashCount} hop hashes x ${pathHashSize} byte(s) = ${pathByteLength} routing bytes`;
         } else if (routeType === RouteType.Flood || routeType === RouteType.TransportFlood) {
-          pathLengthDescription = `${pathLength} bytes showing route taken (increases as packet floods)`;
+          pathLengthDescription = `Packed flood-path encoding: ${pathHashCount} hop hashes x ${pathHashSize} byte(s) = ${pathByteLength} route bytes`;
         }
 
         segments.push({
@@ -181,19 +190,19 @@ export class MeshCorePacketDecoder {
       }
       offset += 1;
 
-      if (bytes.length < offset + pathLength) {
+      if (bytes.length < offset + pathByteLength) {
         throw new Error('Packet too short for path data');
       }
 
       // convert path data to hex strings
-      const pathBytes = bytes.subarray(offset, offset + pathLength);
-      const path: string[] | null = pathLength > 0 ? Array.from(pathBytes).map(byteToHex) : null;
+      const pathBytes = bytes.subarray(offset, offset + pathByteLength);
+      const path: string[] | null = pathByteLength > 0 ? Array.from(pathBytes).map(byteToHex) : null;
 
-      if (includeStructure && pathLength > 0) {
+      if (includeStructure && pathByteLength > 0) {
         if (payloadType === PayloadType.Trace) {
           // TRACE packets have SNR values in path
           const snrValues = [];
-          for (let i = 0; i < pathLength; i++) {
+          for (let i = 0; i < pathByteLength; i++) {
             const snrRaw = bytes[offset + i];
             const snrSigned = snrRaw > 127 ? snrRaw - 256 : snrRaw;
             const snrDb = snrSigned / 4.0;
@@ -203,8 +212,8 @@ export class MeshCorePacketDecoder {
             name: 'Path SNR Data',
             description: `SNR values collected during trace: ${snrValues.join(', ')}`,
             startByte: offset,
-            endByte: offset + pathLength - 1,
-            value: bytesToHex(bytes.slice(offset, offset + pathLength))
+            endByte: offset + pathByteLength - 1,
+            value: bytesToHex(bytes.slice(offset, offset + pathByteLength))
           });
         } else {
           let pathDescription = 'Routing path information';
@@ -218,12 +227,12 @@ export class MeshCorePacketDecoder {
             name: 'Path Data',
             description: pathDescription,
             startByte: offset,
-            endByte: offset + pathLength - 1,
-            value: bytesToHex(bytes.slice(offset, offset + pathLength))
+            endByte: offset + pathByteLength - 1,
+            value: bytesToHex(bytes.slice(offset, offset + pathByteLength))
           });
         }
       }
-      offset += pathLength;
+      offset += pathByteLength;
 
       // extract payload
       const payloadBytes = bytes.subarray(offset);
@@ -359,6 +368,9 @@ export class MeshCorePacketDecoder {
         payloadVersion,
         transportCodes,
         pathLength,
+        pathHashCount,
+        pathHashSize,
+        pathByteLength,
         path,
         payload: {
           raw: payloadHex,
@@ -390,6 +402,9 @@ export class MeshCorePacketDecoder {
         payloadType: PayloadType.RawCustom,
         payloadVersion: PayloadVersion.Version1,
         pathLength: 0,
+        pathHashCount: 0,
+        pathHashSize: 0,
+        pathByteLength: 0,
         path: null,
         payload: { raw: '', decoded: null },
         totalBytes: bytes.length,
