@@ -32,6 +32,7 @@ export interface TracePayload extends BasePayload {
   traceTag: string;
   authCode: number;
   flags: number;
+  pathHashSize?: number;
   pathHashes: string[];
   snrValues?: number[]; // from path field for TRACE packets
 }
@@ -97,6 +98,7 @@ export interface AckPayload extends BasePayload {
 
 export interface PathPayload extends BasePayload {
   pathLength: number;
+  pathHashSize?: number;
   pathHashes: string[];
   extraType: number;
   extraData: string;

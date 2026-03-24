@@ -4,7 +4,7 @@
 import { TracePayload } from '../../types/payloads';
 import { PayloadSegment } from '../../types/packet';
 import { PayloadType, PayloadVersion } from '../../types/enums';
-import { numberToHex, byteToHex, bytesToHex } from '../../utils/hex';
+import { numberToHex, bytesToHex } from '../../utils/hex';
 
 export class TracePayloadDecoder {
   static decode(payload: Uint8Array, pathData?: string[] | null, options?: { includeSegments?: boolean; segmentOffset?: number }): TracePayload & { segments?: PayloadSegment[] } | null {
@@ -81,12 +81,31 @@ export class TracePayloadDecoder {
       }
       offset += 1;
 
+      // v1.11+: lower two flag bits are trace path hash size: 1 << n => 1, 2, 4, 8
+      // Note: This is distinct from the path hash size in the packet header added in 1.14
+      const pathHashSize = 1 << (flags & 0x03);
+      if (payload.length < offset || (payload.length - offset) % pathHashSize !== 0) {
+        return {
+          type: PayloadType.Trace,
+          version: PayloadVersion.Version1,
+          isValid: false,
+          errors: [
+            `Trace payload path bytes (${payload.length - offset}) do not align to ${pathHashSize}-byte hashes`,
+          ],
+          traceTag,
+          authCode,
+          flags,
+          ...(pathHashSize > 1 ? { pathHashSize } : {}),
+          pathHashes: [],
+        };
+      }
+
       // remaining bytes are path hashes (node hashes in the trace path)
       const pathHashes: string[] = [];
       const pathHashesStart = offset;
-      while (offset < payload.length) {
-        pathHashes.push(byteToHex(payload[offset]));
-        offset++;
+      while (offset + pathHashSize <= payload.length) {
+        pathHashes.push(bytesToHex(payload.subarray(offset, offset + pathHashSize)));
+        offset += pathHashSize;
       }
 
       if (options?.includeSegments && pathHashes.length > 0) {
@@ -118,6 +137,7 @@ export class TracePayloadDecoder {
         traceTag,
         authCode,
         flags,
+        ...(pathHashSize > 1 ? { pathHashSize } : {}),
         pathHashes,
         snrValues
       };

@@ -5,6 +5,8 @@ import { MeshCorePacketDecoder, PayloadType, AckPayload, PathPayload } from '../
 
 const ACK_PACKET = '0D04B891647EBB40BA70';
 const PATH_PACKET = '2105F464C77E411279399EFE1942B8A3FFA10F54D9C602FF2C8CF4';
+const MULTIBYTE_ACK_PACKET = '0E41AABB11223344';
+const MULTIBYTE_PATH_PACKET = '210042AABBCCDDEEFF00';
 
 describe('Ack/Path Packet Decoding', () => {
   describe('Ack Packet', () => {
@@ -22,6 +24,24 @@ describe('Ack/Path Packet Decoding', () => {
         
         // Validate Ack payload structure with hex breakdown
         expect(ackPayload.checksum).toBe('BB40BA70'); // Bytes 0-3: CRC checksum as hex
+      } else {
+        fail('Ack payload not decoded correctly');
+      }
+    });
+
+    it('should decode packet-level multi-byte paths correctly', () => {
+      const result = MeshCorePacketDecoder.decode(MULTIBYTE_ACK_PACKET);
+
+      expect(result.isValid).toBe(true);
+      expect(result.payloadType).toBe(PayloadType.Ack);
+      expect(result.pathLength).toBe(1);
+      expect(result.pathHashSize).toBe(2);
+      expect(result.path).toEqual(['AABB']);
+
+      if (result.payload.decoded && 'type' in result.payload.decoded && result.payload.decoded.type === PayloadType.Ack) {
+        const ackPayload = result.payload.decoded as AckPayload;
+        expect(ackPayload.isValid).toBe(true);
+        expect(ackPayload.checksum).toBe('11223344');
       } else {
         fail('Ack payload not decoded correctly');
       }
@@ -52,6 +72,28 @@ describe('Ack/Path Packet Decoding', () => {
         ]); // Bytes 1-18: path hashes
         expect(pathPayload.extraType).toBe(244); // Byte 19: 0xF4 = 244
         expect(pathPayload.extraData).toBe(''); // No extra data after extraType
+      } else {
+        fail('Path payload not decoded correctly');
+      }
+    });
+
+    it('should decode multi-byte path payload hashes correctly', () => {
+      const result = MeshCorePacketDecoder.decode(MULTIBYTE_PATH_PACKET);
+
+      expect(result.isValid).toBe(true);
+      expect(result.payloadType).toBe(PayloadType.Path);
+      expect(result.pathLength).toBe(0);
+      expect(result.path).toBeNull();
+
+      if (result.payload.decoded && 'type' in result.payload.decoded && result.payload.decoded.type === PayloadType.Path) {
+        const pathPayload = result.payload.decoded as PathPayload;
+
+        expect(pathPayload.isValid).toBe(true);
+        expect(pathPayload.pathLength).toBe(2);
+        expect(pathPayload.pathHashSize).toBe(2);
+        expect(pathPayload.pathHashes).toEqual(['AABB', 'CCDD']);
+        expect(pathPayload.extraType).toBe(0xEE);
+        expect(pathPayload.extraData).toBe('FF00');
       } else {
         fail('Path payload not decoded correctly');
       }
