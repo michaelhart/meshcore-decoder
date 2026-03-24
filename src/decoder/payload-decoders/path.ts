@@ -21,6 +21,7 @@ export class PathPayloadDecoder {
           isValid: false,
           errors: ['Path payload too short (minimum 2 bytes: path length + extra type)'],
           pathLength: 0,
+          pathHashSize: 1,
           pathHashes: [],
           extraType: 0,
           extraData: ''
@@ -39,6 +40,7 @@ export class PathPayloadDecoder {
           isValid: false,
           errors: ['Invalid path length byte: reserved hash size (bits 7:6 = 11)'],
           pathLength: 0,
+          pathHashSize,
           pathHashes: [],
           extraType: 0,
           extraData: ''
@@ -52,7 +54,7 @@ export class PathPayloadDecoder {
           isValid: false,
           errors: [`Path payload too short (need ${1 + pathByteLength + 1} bytes for path length + path + extra type)`],
           pathLength: pathHopCount,
-          ...(pathHashSize > 1 ? { pathHashSize } : {}),
+          pathHashSize,
           pathHashes: [],
           extraType: 0,
           extraData: ''
@@ -81,7 +83,7 @@ export class PathPayloadDecoder {
         version: PayloadVersion.Version1,
         isValid: true,
         pathLength: pathHopCount,
-        ...(pathHashSize > 1 ? { pathHashSize } : {}),
+        pathHashSize,
         pathHashes,
         extraType,
         extraData
@@ -93,6 +95,7 @@ export class PathPayloadDecoder {
         isValid: false,
         errors: [error instanceof Error ? error.message : 'Failed to decode Path payload'],
         pathLength: 0,
+        pathHashSize: 1,
         pathHashes: [],
         extraType: 0,
         extraData: ''

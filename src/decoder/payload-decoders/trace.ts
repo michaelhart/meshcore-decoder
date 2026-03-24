@@ -18,6 +18,7 @@ export class TracePayloadDecoder {
           traceTag: '00000000',
           authCode: 0,
           flags: 0,
+          pathHashSize: 1,
           pathHashes: []
         };
         
@@ -95,7 +96,7 @@ export class TracePayloadDecoder {
           traceTag,
           authCode,
           flags,
-          ...(pathHashSize > 1 ? { pathHashSize } : {}),
+          pathHashSize,
           pathHashes: [],
         };
       }
@@ -137,7 +138,7 @@ export class TracePayloadDecoder {
         traceTag,
         authCode,
         flags,
-        ...(pathHashSize > 1 ? { pathHashSize } : {}),
+        pathHashSize,
         pathHashes,
         snrValues
       };
@@ -156,6 +157,7 @@ export class TracePayloadDecoder {
         traceTag: '00000000',
         authCode: 0,
         flags: 0,
+        pathHashSize: 1,
         pathHashes: []
       };
     }

@@ -14,7 +14,7 @@ export interface DecodedPacket {
   // transport and routing
   transportCodes?: [number, number];
   pathLength: number;
-  pathHashSize?: number;
+  pathHashSize: number;
   path: string[] | null;
   
   // payload data

@@ -65,8 +65,8 @@ describe('Multi-byte Hop Labels', () => {
     expect(packet.routeType).toBe(RouteType.Flood);
     expect(packet.payloadType).toBe(PayloadType.GroupText);
 
-    // Path encoding: 0x00 = hash_size=1, hop_count=0 (backward compatible, field omitted)
-    expect(packet.pathHashSize).toBeUndefined();
+    // Path encoding: 0x00 = hash_size=1, hop_count=0
+    expect(packet.pathHashSize).toBe(1);
     expect(packet.pathLength).toBe(0);
     expect(packet.path).toBeNull();
 
