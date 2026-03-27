@@ -24,6 +24,37 @@ npm install @michaelhart/meshcore-decoder
 npm install -g @michaelhart/meshcore-decoder
 ```
 
+## Lite Version (No WASM)
+
+A pure JavaScript build is available for environments without WASM or Web Crypto API (e.g., HTTP pages, embedded browsers):
+
+```typescript
+import { MeshCoreDecoder } from '@michaelhart/meshcore-decoder/lite';
+```
+
+**Standalone bundle** for direct `<script>` use:
+
+```bash
+npm run build:lite  # Creates dist/meshcore-lite.min.mjs (120kb)
+```
+
+```html
+<script type="module">
+  import { decodePacket } from './meshcore-lite.min.mjs';
+  const packet = decodePacket('04001234...');
+</script>
+```
+
+| Feature | Main | Lite |
+|---------|------|------|
+| Packet decoding | ✅ | ✅ |
+| GroupText decryption | ✅ | ✅ |
+| Signature verification | ✅ | ✅ |
+| Auth token signing | ✅ | ❌ |
+| Key derivation (orlp) | ✅ | ❌ |
+| Works on HTTP | ❌ | ✅ |
+| Requires WASM | ✅ | ❌ |
+
 ## Quick Start
 
 ```typescript
