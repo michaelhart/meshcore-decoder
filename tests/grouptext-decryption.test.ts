@@ -201,4 +201,48 @@ describe('GroupText Decryption', () => {
     expect(groupText.decrypted?.sender).toBe('🌲 Tree');
     expect(groupText.decrypted?.message).toBe('☁️');
   });
+
+  it('should auto-detect 2-byte GroupText channel hash format', () => {
+    // Same ciphertext as public channel sample, but with a 2-byte channel hash prefix (11E7)
+    const hexData = '150011E7C3C1354D619BAE9590E4D177DB7EEAF982F5BDCF78005D75157D9535FA90178F785D';
+
+    const keyStore = MeshCorePacketDecoder.createKeyStore({
+      channelSecrets: [
+        '8b3387e9c5cdea6ac9e5edbaa115cd72'
+      ]
+    });
+
+    const packet = MeshCorePacketDecoder.decode(hexData, {
+      keyStore,
+      groupTextChannelHashBytes: 'auto'
+    });
+
+    const groupText = packet.payload.decoded as GroupTextPayload;
+    expect(groupText.isValid).toBe(true);
+    expect(groupText.channelHash).toBe('11E7');
+    expect(groupText.cipherMac).toBe('C3C1');
+    expect(groupText.decrypted).toBeDefined();
+    expect(groupText.decrypted?.sender).toBe('🌲 Tree');
+    expect(groupText.decrypted?.message).toBe('☁️');
+  });
+
+  it('should decrypt 2-byte GroupText channel hash when mode is forced', () => {
+    const hexData = '150011E7C3C1354D619BAE9590E4D177DB7EEAF982F5BDCF78005D75157D9535FA90178F785D';
+
+    const keyStore = MeshCorePacketDecoder.createKeyStore({
+      channelSecrets: [
+        '8b3387e9c5cdea6ac9e5edbaa115cd72'
+      ]
+    });
+
+    const packet = MeshCorePacketDecoder.decode(hexData, {
+      keyStore,
+      groupTextChannelHashBytes: 2
+    });
+
+    const groupText = packet.payload.decoded as GroupTextPayload;
+    expect(groupText.isValid).toBe(true);
+    expect(groupText.channelHash).toBe('11E7');
+    expect(groupText.decrypted).toBeDefined();
+  });
 });

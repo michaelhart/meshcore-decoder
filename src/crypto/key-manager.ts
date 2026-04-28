@@ -7,8 +7,9 @@ import { ChannelCrypto } from './channel-crypto';
 export class MeshCoreKeyStore implements CryptoKeyStore {
   public nodeKeys: Map<string, string> = new Map();
   
-  // internal map for hash -> multiple keys (collision handling)
-  private channelHashToKeys = new Map<string, string[]>();
+  // internal maps for hash prefix -> multiple keys (collision handling)
+  private channelHashToKeys1 = new Map<string, string[]>();
+  private channelHashToKeys2 = new Map<string, string[]>();
 
   constructor(initialKeys?: {
     channelSecrets?: string[];
@@ -32,7 +33,13 @@ export class MeshCoreKeyStore implements CryptoKeyStore {
 
   hasChannelKey(channelHash: string): boolean {
     const normalizedHash = channelHash.toLowerCase();
-    return this.channelHashToKeys.has(normalizedHash);
+    if (normalizedHash.length === 2) {
+      return this.channelHashToKeys1.has(normalizedHash);
+    }
+    if (normalizedHash.length === 4) {
+      return this.channelHashToKeys2.has(normalizedHash);
+    }
+    return false;
   }
 
   hasNodeKey(publicKey: string): boolean {
@@ -45,7 +52,13 @@ export class MeshCoreKeyStore implements CryptoKeyStore {
    */
   getChannelKeys(channelHash: string): string[] {
     const normalizedHash = channelHash.toLowerCase();
-    return this.channelHashToKeys.get(normalizedHash) || [];
+    if (normalizedHash.length === 2) {
+      return this.channelHashToKeys1.get(normalizedHash) || [];
+    }
+    if (normalizedHash.length === 4) {
+      return this.channelHashToKeys2.get(normalizedHash) || [];
+    }
+    return [];
   }
 
   getNodeKey(publicKey: string): string | undefined {
@@ -59,13 +72,18 @@ export class MeshCoreKeyStore implements CryptoKeyStore {
    */
   addChannelSecrets(secretKeys: string[]): void {
     for (const secretKey of secretKeys) {
-      const channelHash = ChannelCrypto.calculateChannelHash(secretKey).toLowerCase();
-      
-      // Handle potential hash collisions
-      if (!this.channelHashToKeys.has(channelHash)) {
-        this.channelHashToKeys.set(channelHash, []);
+      const channelHash1 = ChannelCrypto.calculateChannelHash(secretKey, 1).toLowerCase();
+      const channelHash2 = ChannelCrypto.calculateChannelHash(secretKey, 2).toLowerCase();
+
+      if (!this.channelHashToKeys1.has(channelHash1)) {
+        this.channelHashToKeys1.set(channelHash1, []);
       }
-      this.channelHashToKeys.get(channelHash)!.push(secretKey);
+      this.channelHashToKeys1.get(channelHash1)!.push(secretKey);
+
+      if (!this.channelHashToKeys2.has(channelHash2)) {
+        this.channelHashToKeys2.set(channelHash2, []);
+      }
+      this.channelHashToKeys2.get(channelHash2)!.push(secretKey);
     }
   }
 }
