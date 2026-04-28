@@ -199,6 +199,30 @@ structure.payload.segments.forEach((seg, i) => {
 });
 ```
 
+### GroupText Channel Hash Size (1-byte or 2-byte)
+
+Some networks are moving from a 1-byte GroupText channel hash prefix to a 2-byte prefix to reduce collisions.
+
+The decoder now supports:
+
+- `groupTextChannelHashBytes: 1` for legacy behavior
+- `groupTextChannelHashBytes: 2` for experimental 2-byte prefix
+- `groupTextChannelHashBytes: 'auto'` (recommended) to try both formats
+
+```typescript
+const packet = MeshCoreDecoder.decode(groupTextHexData, {
+  keyStore,
+  groupTextChannelHashBytes: 'auto'
+});
+```
+
+CLI usage:
+
+```bash
+meshcore-decoder decode <hex> --group-hash-bytes auto --key <secret>
+meshcore-decoder decode <hex> --group-hash-bytes 2 --key <secret>
+```
+
 ### Regions (transport codes)
 
 MeshCore repeaters use **regions** (e.g. `#Europe`, `*`) to control which packets are flooded or blocked. Region information is **not** inside the GroupText (or other) payload; it is carried in the **packet header** as **transport codes** when the route type is **Transport flood** (`0x00`) or **Transport direct** (`0x03`).

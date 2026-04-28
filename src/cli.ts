@@ -20,6 +20,7 @@ program
   .description('Decode a MeshCore packet')
   .argument('<hex>', 'Hex string of the packet to decode')
   .option('-k, --key <keys...>', 'Channel secret keys for decryption (hex)')
+  .option('--group-hash-bytes <mode>', 'GroupText channel hash bytes: auto, 1, or 2', 'auto')
   .option('-j, --json', 'Output as JSON instead of formatted text')
   .option('-s, --structure', 'Show detailed packet structure analysis')
   .action(async (hex: string, options: any) => {
@@ -35,13 +36,25 @@ program
         });
       }
       
+      const groupHashMode = options.groupHashBytes === '1'
+        ? 1
+        : options.groupHashBytes === '2'
+          ? 2
+          : 'auto';
+
       // Decode packet with signature verification
-      const packet = await MeshCorePacketDecoder.decodeWithVerification(cleanHex, { keyStore });
+      const packet = await MeshCorePacketDecoder.decodeWithVerification(cleanHex, {
+        keyStore,
+        groupTextChannelHashBytes: groupHashMode
+      });
       
       if (options.json) {
         // JSON output
         if (options.structure) {
-          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, { keyStore });
+          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, {
+            keyStore,
+            groupTextChannelHashBytes: groupHashMode
+          });
           console.log(JSON.stringify({ packet, structure }, null, 2));
         } else {
           console.log(JSON.stringify(packet, null, 2));
@@ -81,7 +94,10 @@ program
         
         // Show structure if requested
         if (options.structure) {
-          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, { keyStore });
+          const structure = await MeshCorePacketDecoder.analyzeStructureWithVerification(cleanHex, {
+            keyStore,
+            groupTextChannelHashBytes: groupHashMode
+          });
           console.log(chalk.cyan('\n=== Packet Structure ==='));
           
           console.log(chalk.yellow('\nMain Segments:'));

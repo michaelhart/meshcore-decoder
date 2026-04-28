@@ -8,15 +8,56 @@ import { DecryptionOptions } from '../../types/crypto';
 import { ChannelCrypto } from '../../crypto/channel-crypto';
 import { byteToHex, bytesToHex } from '../../utils/hex';
 
+interface GroupTextCandidate {
+  channelHash: string;
+  cipherMac: string;
+  ciphertext: string;
+  ciphertextLength: number;
+  hashByteCount: 1 | 2;
+}
+
+function parseGroupTextCandidate(payload: Uint8Array, hashByteCount: 1 | 2): GroupTextCandidate | null {
+  const minimumLength = hashByteCount + 2;
+  if (payload.length < minimumLength) {
+    return null;
+  }
+
+  let offset = 0;
+  const channelHash = hashByteCount === 1
+    ? byteToHex(payload[offset])
+    : bytesToHex(payload.subarray(offset, offset + 2));
+  offset += hashByteCount;
+
+  const cipherMac = bytesToHex(payload.subarray(offset, offset + 2));
+  offset += 2;
+
+  const ciphertext = bytesToHex(payload.subarray(offset));
+
+  return {
+    channelHash,
+    cipherMac,
+    ciphertext,
+    ciphertextLength: payload.length - minimumLength,
+    hashByteCount
+  };
+}
+
 export class GroupTextPayloadDecoder {
   static decode(payload: Uint8Array, options?: DecryptionOptions & { includeSegments?: boolean; segmentOffset?: number }): GroupTextPayload & { segments?: PayloadSegment[] } | null {
     try {
-      if (payload.length < 3) {
+      const mode = options?.groupTextChannelHashBytes ?? 'auto';
+      const minimumLength = mode === 2 ? 4 : 3;
+
+      if (payload.length < minimumLength) {
         const result: GroupTextPayload & { segments?: PayloadSegment[] } = {
           type: PayloadType.GroupText,
           version: PayloadVersion.Version1,
           isValid: false,
-          errors: ['GroupText payload too short (need at least channel_hash(1) + MAC(2))'],
+          errors: [
+            mode === 2
+              ? 'GroupText payload too short (need at least channel_hash(2) + MAC(2))'
+              : 'GroupText payload too short (need at least channel_hash(1) + MAC(2))'
+          ],
           channelHash: '',
           cipherMac: '',
           ciphertext: '',
@@ -38,77 +79,105 @@ export class GroupTextPayloadDecoder {
 
       const segments: PayloadSegment[] = [];
       const segmentOffset = options?.segmentOffset || 0;
-      let offset = 0;
+      const candidates: GroupTextCandidate[] = [];
+      const requestedOrder: Array<1 | 2> =
+        mode === 1 ? [1] :
+        mode === 2 ? [2] :
+        [1, 2];
 
-      // channel hash (1 byte) - first byte of SHA256 of channel's shared key
-      const channelHash = byteToHex(payload[offset]);
-      if (options?.includeSegments) {
-        segments.push({
-          name: 'Channel Hash',
-          description: 'First byte of SHA256 of channel\'s shared key',
-          startByte: segmentOffset + offset,
-          endByte: segmentOffset + offset,
-          value: channelHash
-        });
+      for (const hashByteCount of requestedOrder) {
+        const candidate = parseGroupTextCandidate(payload, hashByteCount);
+        if (candidate) {
+          candidates.push(candidate);
+        }
       }
-      offset += 1;
-      
-      // MAC (2 bytes) - message authentication code
-      const cipherMac = bytesToHex(payload.subarray(offset, offset + 2));
-      if (options?.includeSegments) {
-        segments.push({
-          name: 'Cipher MAC',
-          description: 'MAC for encrypted data',
-          startByte: segmentOffset + offset,
-          endByte: segmentOffset + offset + 1,
-          value: cipherMac
-        });
+
+      if (candidates.length === 0) {
+        throw new Error('Failed to parse GroupText payload');
       }
-      offset += 2;
-      
-      // ciphertext (remaining bytes) - encrypted message
-      const ciphertext = bytesToHex(payload.subarray(offset));
-      if (options?.includeSegments && payload.length > offset) {
-        segments.push({
-          name: 'Ciphertext',
-          description: 'Encrypted message content (timestamp + flags + message)',
-          startByte: segmentOffset + offset,
-          endByte: segmentOffset + payload.length - 1,
-          value: ciphertext
-        });
-      }
+
+      let selected = candidates[0];
 
       const groupText: GroupTextPayload & { segments?: PayloadSegment[] } = {
         type: PayloadType.GroupText,
         version: PayloadVersion.Version1,
         isValid: true,
-        channelHash,
-        cipherMac,
-        ciphertext,
-        ciphertextLength: payload.length - 3
+        channelHash: selected.channelHash,
+        cipherMac: selected.cipherMac,
+        ciphertext: selected.ciphertext,
+        ciphertextLength: selected.ciphertextLength
       };
 
       // attempt decryption if key store is provided
-      if (options?.keyStore && options.keyStore.hasChannelKey(channelHash)) {
-        // try all possible keys for this hash (handles collisions)
-        const channelKeys = options.keyStore.getChannelKeys(channelHash);
-        
-        for (const channelKey of channelKeys) {
-          const decryptionResult = ChannelCrypto.decryptGroupTextMessage(
-            ciphertext,
-            cipherMac,
-            channelKey
-          );
-          
-          if (decryptionResult.success && decryptionResult.data) {
-            groupText.decrypted = {
-              timestamp: decryptionResult.data.timestamp,
-              flags: decryptionResult.data.flags,
-              sender: decryptionResult.data.sender,
-              message: decryptionResult.data.message
-            };
-            break; // stop trying keys once we find one that works
+      if (options?.keyStore) {
+        for (const candidate of candidates) {
+          const channelKeys = options.keyStore.getChannelKeys(candidate.channelHash);
+          const fallbackKeys =
+            candidate.hashByteCount === 2
+              ? options.keyStore.getChannelKeys(candidate.channelHash.substring(0, 2))
+              : [];
+          const keysToTry = Array.from(new Set([...channelKeys, ...fallbackKeys]));
+
+          for (const channelKey of keysToTry) {
+            const decryptionResult = ChannelCrypto.decryptGroupTextMessage(
+              candidate.ciphertext,
+              candidate.cipherMac,
+              channelKey
+            );
+
+            if (decryptionResult.success && decryptionResult.data) {
+              selected = candidate;
+              groupText.channelHash = candidate.channelHash;
+              groupText.cipherMac = candidate.cipherMac;
+              groupText.ciphertext = candidate.ciphertext;
+              groupText.ciphertextLength = candidate.ciphertextLength;
+              groupText.decrypted = {
+                timestamp: decryptionResult.data.timestamp,
+                flags: decryptionResult.data.flags,
+                sender: decryptionResult.data.sender,
+                message: decryptionResult.data.message
+              };
+              break;
+            }
           }
+
+          if (groupText.decrypted) {
+            break;
+          }
+        }
+      }
+
+      if (options?.includeSegments) {
+        const hashDescription = selected.hashByteCount === 2
+          ? 'First 2 bytes of SHA256 of channel\'s shared key'
+          : 'First byte of SHA256 of channel\'s shared key';
+
+        segments.push({
+          name: 'Channel Hash',
+          description: hashDescription,
+          startByte: segmentOffset,
+          endByte: segmentOffset + selected.hashByteCount - 1,
+          value: selected.channelHash
+        });
+
+        const macStart = selected.hashByteCount;
+        segments.push({
+          name: 'Cipher MAC',
+          description: 'MAC for encrypted data',
+          startByte: segmentOffset + macStart,
+          endByte: segmentOffset + macStart + 1,
+          value: selected.cipherMac
+        });
+
+        if (payload.length > selected.hashByteCount + 2) {
+          const ciphertextStart = selected.hashByteCount + 2;
+          segments.push({
+            name: 'Ciphertext',
+            description: 'Encrypted message content (timestamp + flags + message)',
+            startByte: segmentOffset + ciphertextStart,
+            endByte: segmentOffset + payload.length - 1,
+            value: selected.ciphertext
+          });
         }
       }
 

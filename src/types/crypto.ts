@@ -18,6 +18,8 @@ export interface DecryptionOptions {
   keyStore?: CryptoKeyStore;
   attemptDecryption?: boolean; // default: true if keyStore provided
   includeRawCiphertext?: boolean; // default: true
+  // GroupText channel hash size: 1 byte (legacy), 2 bytes (experimental), or auto-detect
+  groupTextChannelHashBytes?: 1 | 2 | 'auto';
 }
 
 export interface DecryptionResult {

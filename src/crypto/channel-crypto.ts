@@ -104,11 +104,15 @@ export class ChannelCrypto {
 
   /**
    * Calculate MeshCore channel hash from secret key
-   * Returns the first byte of SHA256(secret) as hex string
+   * Returns the first N bytes of SHA256(secret) as hex string
    */
-  static calculateChannelHash(secretKeyHex: string): string {
+  static calculateChannelHash(secretKeyHex: string, hashByteCount = 1): string {
+    if (hashByteCount < 1) {
+      throw new Error('hashBytes must be >= 1');
+    }
+
     const hash = SHA256(enc.Hex.parse(secretKeyHex));
-    const hashBytes = hexToBytes(hash.toString(enc.Hex));
-    return hashBytes[0].toString(16).padStart(2, '0');
+    const hashBuffer = hexToBytes(hash.toString(enc.Hex));
+    return bytesToHex(hashBuffer.subarray(0, hashByteCount));
   }
 }
